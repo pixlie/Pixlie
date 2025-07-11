@@ -13,8 +13,8 @@ use config::Config;
 use database::Database;
 use entity_extraction::EntityExtractor;
 use handlers::{
-    AppData, download_model, get_config, get_download_status, get_extraction_status, get_models,
-    set_data_folder, start_download, start_extraction, stop_download, stop_extraction,
+    AppData, download_model, get_config, get_download_status, get_extraction_status, get_items,
+    get_models, set_data_folder, start_download, start_extraction, stop_download, stop_extraction,
 };
 use hn_api::HnApiClient;
 use std::sync::{Arc, Mutex};
@@ -91,7 +91,8 @@ async fn start_server(port: u16) -> std::io::Result<()> {
                     .route("/models/download", web::post().to(download_model))
                     .route("/extraction/start", web::post().to(start_extraction))
                     .route("/extraction/stop", web::post().to(stop_extraction))
-                    .route("/extraction/status", web::get().to(get_extraction_status)),
+                    .route("/extraction/status", web::get().to(get_extraction_status))
+                    .route("/items", web::get().to(get_items)),
             )
     })
     .bind(("127.0.0.1", port))?

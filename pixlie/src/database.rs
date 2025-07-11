@@ -4,21 +4,32 @@ use sqlx::SqlitePool;
 use std::path::Path;
 use ts_rs::TS;
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, TS)]
+#[ts(export)]
 pub struct HnItem {
     pub id: i64,
     pub item_type: String,
+    #[ts(type = "string | null")]
     pub by: Option<String>,
+    #[ts(type = "string")]
     pub time: DateTime<Utc>,
+    #[ts(type = "string | null")]
     pub text: Option<String>,
+    #[ts(type = "string | null")]
     pub url: Option<String>,
+    #[ts(type = "number | null")]
     pub score: Option<i64>,
+    #[ts(type = "string | null")]
     pub title: Option<String>,
+    #[ts(type = "number | null")]
     pub parent: Option<i64>,
+    #[ts(type = "string | null")]
     pub kids: Option<String>, // JSON array of child IDs
+    #[ts(type = "number | null")]
     pub descendants: Option<i64>,
     pub deleted: bool,
     pub dead: bool,
+    #[ts(type = "string")]
     pub created_at: DateTime<Utc>,
 }
 
@@ -35,12 +46,12 @@ pub struct HnUser {
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct DownloadStats {
-    pub total_items: u64,
-    pub total_users: u64,
+    pub total_items: u32,
+    pub total_users: u32,
     #[ts(type = "string | null")]
     pub last_download_time: Option<DateTime<Utc>>,
-    pub items_downloaded_today: u64,
-    pub download_errors: u64,
+    pub items_downloaded_today: u32,
+    pub download_errors: u32,
     pub is_downloading: bool,
 }
 
@@ -60,11 +71,11 @@ pub struct Entity {
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ExtractionStats {
-    pub total_entities: u64,
+    pub total_entities: u32,
     #[ts(type = "Record<string, number>")]
-    pub entities_by_type: std::collections::HashMap<String, u64>,
-    pub total_items_processed: u64,
-    pub items_remaining: u64,
+    pub entities_by_type: std::collections::HashMap<String, u32>,
+    pub total_items_processed: u32,
+    pub items_remaining: u32,
     pub is_extracting: bool,
     #[ts(type = "string | null")]
     pub last_extraction_time: Option<DateTime<Utc>>,
@@ -300,11 +311,11 @@ impl Database {
                 .await?;
 
         Ok(DownloadStats {
-            total_items: total_items as u64,
-            total_users: total_users as u64,
+            total_items: total_items as u32,
+            total_users: total_users as u32,
             last_download_time,
-            items_downloaded_today: items_downloaded_today as u64,
-            download_errors: download_errors as u64,
+            items_downloaded_today: items_downloaded_today as u32,
+            download_errors: download_errors as u32,
             is_downloading,
         })
     }
@@ -435,14 +446,14 @@ impl Database {
 
         let entities_by_type = entity_type_rows
             .into_iter()
-            .map(|(entity_type, count)| (entity_type, count as u64))
+            .map(|(entity_type, count)| (entity_type, count as u32))
             .collect();
 
         Ok(ExtractionStats {
-            total_entities: total_entities as u64,
+            total_entities: total_entities as u32,
             entities_by_type,
-            total_items_processed: total_items_processed as u64,
-            items_remaining: items_remaining as u64,
+            total_items_processed: total_items_processed as u32,
+            items_remaining: items_remaining as u32,
             is_extracting,
             last_extraction_time,
         })
@@ -511,5 +522,32 @@ impl Database {
         .await?;
 
         Ok(items)
+    }
+
+    pub async fn get_items_paginated(
+        &self,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<HnItem>, sqlx::Error> {
+        let items = sqlx::query_as::<_, HnItem>(
+            r#"
+            SELECT * FROM hn_items 
+            ORDER BY time DESC 
+            LIMIT ? OFFSET ?
+            "#,
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(items)
+    }
+
+    pub async fn get_total_items_count(&self) -> Result<i64, sqlx::Error> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM hn_items")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(count)
     }
 }
