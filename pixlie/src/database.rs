@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::path::Path;
+use ts_rs::TS;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct HnItem {
@@ -31,10 +32,12 @@ pub struct HnUser {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct DownloadStats {
     pub total_items: u64,
     pub total_users: u64,
+    #[ts(type = "string | null")]
     pub last_download_time: Option<DateTime<Utc>>,
     pub items_downloaded_today: u64,
     pub download_errors: u64,
@@ -54,13 +57,16 @@ pub struct Entity {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ExtractionStats {
     pub total_entities: u64,
+    #[ts(type = "Record<string, number>")]
     pub entities_by_type: std::collections::HashMap<String, u64>,
     pub total_items_processed: u64,
     pub items_remaining: u64,
     pub is_extracting: bool,
+    #[ts(type = "string | null")]
     pub last_extraction_time: Option<DateTime<Utc>>,
 }
 
