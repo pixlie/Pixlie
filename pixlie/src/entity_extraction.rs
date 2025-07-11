@@ -36,14 +36,28 @@ impl EntityExtractor {
 
     pub fn get_available_models() -> Vec<ModelInfo> {
         vec![ModelInfo {
-            name: "gliner-x-large".to_string(),
-            size_mb: 1024, // Approximate size
+            name: "gliner-multi-v2.1-onnx".to_string(),
+            size_mb: 1123, // 1,177,789,050 bytes = ~1.12 GB
             download_url:
-                "https://huggingface.co/knowledgator/gliner-x-large/resolve/main/onnx/model.onnx"
+                "https://huggingface.co/juampahc/gliner_multi-v2.1-onnx/resolve/main/model.onnx"
                     .to_string(),
             is_downloaded: false, // Will be checked dynamically
             local_path: None,
         }]
+    }
+
+    pub fn get_available_models_with_status(models_dir: &Path) -> Vec<ModelInfo> {
+        Self::get_available_models()
+            .into_iter()
+            .map(|mut model| {
+                let model_file_path = models_dir.join(&model.name).join("model.onnx");
+                model.is_downloaded = model_file_path.exists();
+                if model.is_downloaded {
+                    model.local_path = Some(model_file_path.to_string_lossy().to_string());
+                }
+                model
+            })
+            .collect()
     }
 
     pub async fn download_model(
@@ -51,9 +65,10 @@ impl EntityExtractor {
         models_dir: &Path,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         // Ensure models directory exists
-        tokio::fs::create_dir_all(models_dir).await?;
+        let model_dir = models_dir.join(model_name);
+        tokio::fs::create_dir_all(&model_dir).await?;
 
-        let model_file_path = models_dir.join(format!("{}.onnx", model_name));
+        let model_file_path = model_dir.join("model.onnx");
 
         // Check if model already exists
         if model_file_path.exists() {
@@ -92,7 +107,7 @@ impl EntityExtractor {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // For now, just store the path. In a real implementation, we would load the GLiNER model here
         self.model_path = Some(model_path.to_string());
-        println!("Model loaded from: {}", model_path);
+        println!("Model loaded from: {model_path}");
         Ok(())
     }
 
@@ -176,7 +191,7 @@ impl EntityExtractor {
                     };
 
                     if let Err(e) = database.insert_entity(&entity).await {
-                        eprintln!("Failed to insert entity: {}", e);
+                        eprintln!("Failed to insert entity: {e}");
                     } else {
                         entities_extracted += 1;
                     }

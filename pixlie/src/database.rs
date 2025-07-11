@@ -238,6 +238,7 @@ impl Database {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn insert_user(&self, user: &HnUser) -> Result<(), sqlx::Error> {
         sqlx::query(
             r#"
@@ -344,6 +345,7 @@ impl Database {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn get_item_count(&self) -> Result<u64, sqlx::Error> {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM hn_items")
             .fetch_one(&self.pool)
@@ -351,6 +353,7 @@ impl Database {
         Ok(count as u64)
     }
 
+    #[allow(dead_code)]
     pub async fn item_exists(&self, id: i64) -> Result<bool, sqlx::Error> {
         let exists: bool = sqlx::query_scalar("SELECT COUNT(*) > 0 FROM hn_items WHERE id = ?")
             .bind(id)

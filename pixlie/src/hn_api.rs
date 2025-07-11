@@ -27,6 +27,7 @@ struct HnApiItem {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct HnApiUser {
     id: String,
     created: i64,
@@ -65,6 +66,7 @@ impl HnApiClient {
         Ok(story_ids)
     }
 
+    #[allow(dead_code)]
     pub async fn get_new_stories(
         &self,
     ) -> Result<Vec<i64>, Box<dyn std::error::Error + Send + Sync>> {
@@ -74,6 +76,7 @@ impl HnApiClient {
         Ok(story_ids)
     }
 
+    #[allow(dead_code)]
     pub async fn get_best_stories(
         &self,
     ) -> Result<Vec<i64>, Box<dyn std::error::Error + Send + Sync>> {
@@ -83,6 +86,7 @@ impl HnApiClient {
         Ok(story_ids)
     }
 
+    #[allow(dead_code)]
     pub async fn get_ask_stories(
         &self,
     ) -> Result<Vec<i64>, Box<dyn std::error::Error + Send + Sync>> {
@@ -92,6 +96,7 @@ impl HnApiClient {
         Ok(story_ids)
     }
 
+    #[allow(dead_code)]
     pub async fn get_show_stories(
         &self,
     ) -> Result<Vec<i64>, Box<dyn std::error::Error + Send + Sync>> {
@@ -101,6 +106,7 @@ impl HnApiClient {
         Ok(story_ids)
     }
 
+    #[allow(dead_code)]
     pub async fn get_job_stories(
         &self,
     ) -> Result<Vec<i64>, Box<dyn std::error::Error + Send + Sync>> {
@@ -150,6 +156,7 @@ impl HnApiClient {
         Ok(Some(item))
     }
 
+    #[allow(dead_code)]
     pub async fn get_user(
         &self,
         username: &str,
@@ -179,6 +186,7 @@ impl HnApiClient {
         Ok(Some(user))
     }
 
+    #[allow(dead_code)]
     pub async fn download_items_range(
         &self,
         start_id: i64,
@@ -214,6 +222,7 @@ impl HnApiClient {
         Ok((downloaded, errors))
     }
 
+    #[allow(dead_code)]
     pub async fn download_stories_batch(
         &self,
         story_ids: Vec<i64>,

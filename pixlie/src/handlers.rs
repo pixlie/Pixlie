@@ -61,9 +61,13 @@ pub struct StartExtractionRequest {
 }
 
 pub async fn get_config(data: AppState) -> Result<HttpResponse> {
-    let config = data.config.lock().unwrap();
     let config_path =
         Config::get_config_path().map_err(actix_web::error::ErrorInternalServerError)?;
+
+    let data_folder = {
+        let config = data.config.lock().unwrap();
+        config.data_folder.clone()
+    };
 
     let download_stats = if let Some(ref db) = data.database {
         db.get_stats().await.unwrap_or(DownloadStats {
@@ -87,7 +91,7 @@ pub async fn get_config(data: AppState) -> Result<HttpResponse> {
 
     let response = ConfigResponse {
         config_path: config_path.to_string_lossy().to_string(),
-        data_folder: config.data_folder.clone(),
+        data_folder,
         download_stats,
     };
 
@@ -98,13 +102,15 @@ pub async fn set_data_folder(
     data: AppState,
     req: web::Json<SetDataFolderRequest>,
 ) -> Result<HttpResponse> {
-    let mut config = data.config.lock().unwrap();
     let folder_path = PathBuf::from(&req.folder_path);
 
-    match config.set_data_folder(folder_path.clone()) {
-        Ok(_) => {
-            drop(config); // Release the lock
+    let config_result = {
+        let mut config = data.config.lock().unwrap();
+        config.set_data_folder(folder_path.clone())
+    };
 
+    match config_result {
+        Ok(_) => {
             // Initialize database in the new data folder
             let db_path = folder_path.join("hackernews.db");
             match Database::new(&db_path).await {
@@ -118,7 +124,7 @@ pub async fn set_data_folder(
                 }
                 Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
                     "success": false,
-                    "error": format!("Failed to initialize database: {}", e)
+                    "error": format!("Failed to initialize database: {e}")
                 }))),
             }
         }
@@ -133,19 +139,19 @@ pub async fn start_download(
     data: AppState,
     req: web::Json<StartDownloadRequest>,
 ) -> Result<HttpResponse> {
-    let config = data.config.lock().unwrap();
-
     // Check if data folder is set
-    let _data_folder = match &config.data_folder {
-        Some(folder) => folder.clone(),
-        None => {
-            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
-                "success": false,
-                "error": "Data folder not set. Please set a data folder first."
-            })));
+    let _data_folder = {
+        let config = data.config.lock().unwrap();
+        match &config.data_folder {
+            Some(folder) => folder.clone(),
+            None => {
+                return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                    "success": false,
+                    "error": "Data folder not set. Please set a data folder first."
+                })));
+            }
         }
     };
-    drop(config);
 
     // Check if database exists
     let database = match &data.database {
@@ -386,8 +392,16 @@ async fn perform_download(
 }
 
 // Entity extraction handlers
-pub async fn get_models(_data: AppState) -> Result<HttpResponse> {
-    let models = EntityExtractor::get_available_models();
+pub async fn get_models(data: AppState) -> Result<HttpResponse> {
+    let config = data.config.lock().unwrap();
+    let models = if let Some(ref data_folder) = config.data_folder {
+        let models_dir = data_folder.join("models");
+        EntityExtractor::get_available_models_with_status(&models_dir)
+    } else {
+        EntityExtractor::get_available_models()
+    };
+    drop(config);
+
     let response = ModelsResponse { models };
     Ok(HttpResponse::Ok().json(response))
 }
@@ -420,18 +434,17 @@ pub async fn download_model(
     task::spawn(async move {
         match EntityExtractor::download_model(&model_name, &models_dir).await {
             Ok(model_path) => {
-                println!(
-                    "Model {} downloaded successfully to {}",
-                    model_name, model_path
-                );
+                println!("Model {model_name} downloaded successfully to {model_path}");
                 // Load the model into the extractor
                 let mut extractor = app_data.entity_extractor.lock().unwrap();
                 if let Err(e) = extractor.load_model(&model_path) {
-                    eprintln!("Failed to load model: {}", e);
+                    eprintln!("Failed to load model: {e}");
+                } else {
+                    println!("Model {model_name} loaded successfully");
                 }
             }
             Err(e) => {
-                eprintln!("Failed to download model {}: {}", model_name, e);
+                eprintln!("Failed to download model {model_name}: {e}");
             }
         }
     });
@@ -457,23 +470,25 @@ pub async fn start_extraction(
         }
     };
 
-    // Check if model is loaded
-    let extractor = data.entity_extractor.lock().unwrap();
-    if !extractor.is_model_loaded() {
+    // Check if model is loaded and not already extracting
+    let (is_model_loaded, is_extracting) = {
+        let extractor = data.entity_extractor.lock().unwrap();
+        (extractor.is_model_loaded(), extractor.is_extracting())
+    };
+
+    if !is_model_loaded {
         return Ok(HttpResponse::BadRequest().json(serde_json::json!({
             "success": false,
             "error": "No model loaded. Please download a model first."
         })));
     }
 
-    // Check if already extracting
-    if extractor.is_extracting() {
+    if is_extracting {
         return Ok(HttpResponse::Conflict().json(serde_json::json!({
             "success": false,
             "error": "Extraction is already in progress"
         })));
     }
-    drop(extractor);
 
     // Start extraction session
     let session_id = database
@@ -499,17 +514,22 @@ pub async fn start_extraction(
 }
 
 pub async fn stop_extraction(data: AppState) -> Result<HttpResponse> {
-    let extractor = data.entity_extractor.lock().unwrap();
+    // Check if extraction is in progress and stop it
+    let is_extracting = {
+        let extractor = data.entity_extractor.lock().unwrap();
+        let extracting = extractor.is_extracting();
+        if extracting {
+            extractor.stop_extraction();
+        }
+        extracting
+    };
 
-    if !extractor.is_extracting() {
+    if !is_extracting {
         return Ok(HttpResponse::BadRequest().json(serde_json::json!({
             "success": false,
             "error": "No extraction in progress"
         })));
     }
-
-    extractor.stop_extraction();
-    drop(extractor);
 
     // Stop extraction sessions in database
     if let Some(database) = &data.database {
@@ -589,8 +609,7 @@ async fn perform_extraction(
                 .await
                 .map_err(|e| e.to_string())?;
             println!(
-                "Extraction completed: {} entities extracted from {} items",
-                entities_extracted, items_processed
+                "Extraction completed: {entities_extracted} entities extracted from {items_processed} items"
             );
         }
         Err(e) => {
