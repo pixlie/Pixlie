@@ -1,0 +1,58 @@
+repos:
+  # Rust checks for pixlie/
+  - repo: local
+    hooks:
+      - id: rust-fmt
+        name: Rust format check
+        entry: bash -c 'cd pixlie && cargo fmt --all -- --check'
+        language: system
+        files: '^pixlie/.*\.rs$'
+        pass_filenames: false
+      
+      - id: rust-clippy
+        name: Rust clippy
+        entry: bash -c 'cd pixlie && cargo clippy --all-targets --all-features -- -D warnings'
+        language: system
+        files: '^pixlie/.*\.rs$'
+        pass_filenames: false
+      
+      - id: rust-test
+        name: Rust tests
+        entry: bash -c 'cd pixlie && cargo test'
+        language: system
+        files: '^pixlie/.*\.rs$'
+        pass_filenames: false
+
+  # TypeScript/webapp checks
+  - repo: local
+    hooks:
+      - id: webapp-install
+        name: Install webapp dependencies
+        entry: bash -c 'cd webapp && pnpm install --frozen-lockfile'
+        language: system
+        files: '^webapp/(package\.json|pnpm-lock\.yaml)$'
+        pass_filenames: false
+      
+      - id: webapp-typecheck
+        name: TypeScript type check
+        entry: bash -c 'cd webapp && pnpm exec tsc -b --noEmit'
+        language: system
+        files: '^webapp/.*\.(ts|tsx)$'
+        pass_filenames: false
+      
+      - id: webapp-lint
+        name: ESLint check
+        entry: bash -c 'cd webapp && pnpm lint'
+        language: system
+        files: '^webapp/.*\.(ts|tsx|js|jsx)$'
+        pass_filenames: false
+
+  # General checks
+  - repo: pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict

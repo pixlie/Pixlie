@@ -45,6 +45,96 @@ webapp/
 **Data Sources**
 - **Hacker News API**: Firebase-based REST API
 
+**Development & CI**
+- **CI/CD**: GitHub Actions for automated testing and building
+- **Code Quality**: Rust clippy, cargo fmt, ESLint, TypeScript compiler
+- **Pre-commit Hooks**: Automated code quality checks before commits
+- **Package Management**: Cargo for Rust, pnpm for Node.js
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Rust 1.70+ with cargo
+- Node.js 18+ with pnpm
+- Git
+
+### Setup Development Environment
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/pixlie/Pixlie.git
+   cd Pixlie
+   ```
+
+2. **Setup development environment**
+   ```bash
+   make setup
+   ```
+   This will:
+   - Install git pre-commit hooks
+   - Install webapp dependencies
+
+3. **Start the backend**
+   ```bash
+   cd pixlie
+   cargo run
+   ```
+
+4. **Start the frontend** (in a new terminal)
+   ```bash
+   cd webapp
+   pnpm dev
+   ```
+
+### Development Commands
+
+We provide a convenient Makefile for common development tasks:
+
+```bash
+# Setup and install hooks
+make setup
+
+# Run all checks (format, lint, test)
+make check
+
+# Build all projects
+make build
+
+# Run tests
+make test
+
+# Clean build artifacts
+make clean
+```
+
+**Rust Backend Commands:**
+```bash
+make check-rust    # Format, clippy, and test
+make build-rust    # Build the backend
+make test-rust     # Run Rust tests
+```
+
+**Webapp Commands:**
+```bash
+make check-webapp  # TypeScript check and lint
+make build-webapp  # Build the frontend
+```
+
+### Git Hooks and CI
+
+This project uses automated code quality checks:
+
+- **Pre-commit hooks**: Run automatically before each commit
+- **GitHub Actions**: Run on every push and pull request
+- **Code formatting**: Rust `cargo fmt` and ESLint for TypeScript
+- **Linting**: Rust `clippy` and ESLint
+- **Testing**: Automated test execution
+
+To bypass pre-commit hooks in emergencies:
+```bash
+git commit --no-verify
+```
+
 ## 📄 License
 
 This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
