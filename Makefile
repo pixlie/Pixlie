@@ -20,6 +20,7 @@ help:
 	@echo "  build-webapp   - Build React webapp"
 	@echo "  test           - Run all tests"
 	@echo "  test-rust      - Run Rust tests"
+	@echo "  audit-rust     - Run Rust security audit"
 	@echo "  clean          - Clean build artifacts"
 	@echo ""
 	@echo "CI Commands:"
@@ -50,7 +51,11 @@ test-rust:
 	@echo "🧪 Running Rust tests..."
 	cd pixlie && cargo test
 
-ci-rust: check-rust build-rust
+audit-rust:
+	@echo "🔒 Running Rust security audit..."
+	cd pixlie && cargo audit --ignore RUSTSEC-2023-0071
+
+ci-rust: check-rust build-rust audit-rust
 	@echo "✅ Rust CI pipeline completed"
 
 # Webapp commands
