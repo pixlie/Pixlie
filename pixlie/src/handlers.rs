@@ -39,9 +39,13 @@ pub struct StartDownloadRequest {
 }
 
 pub async fn get_config(data: AppState) -> Result<HttpResponse> {
-    let config = data.config.lock().unwrap();
     let config_path =
         Config::get_config_path().map_err(actix_web::error::ErrorInternalServerError)?;
+
+    let data_folder = {
+        let config = data.config.lock().unwrap();
+        config.data_folder.clone()
+    };
 
     let download_stats = if let Some(ref db) = data.database {
         db.get_stats().await.unwrap_or(DownloadStats {
@@ -65,7 +69,7 @@ pub async fn get_config(data: AppState) -> Result<HttpResponse> {
 
     let response = ConfigResponse {
         config_path: config_path.to_string_lossy().to_string(),
-        data_folder: config.data_folder.clone(),
+        data_folder,
         download_stats,
     };
 
@@ -76,13 +80,15 @@ pub async fn set_data_folder(
     data: AppState,
     req: web::Json<SetDataFolderRequest>,
 ) -> Result<HttpResponse> {
-    let mut config = data.config.lock().unwrap();
     let folder_path = PathBuf::from(&req.folder_path);
 
-    match config.set_data_folder(folder_path.clone()) {
-        Ok(_) => {
-            drop(config); // Release the lock
+    let config_result = {
+        let mut config = data.config.lock().unwrap();
+        config.set_data_folder(folder_path.clone())
+    };
 
+    match config_result {
+        Ok(_) => {
             // Initialize database in the new data folder
             let db_path = folder_path.join("hackernews.db");
             match Database::new(&db_path).await {
@@ -96,7 +102,7 @@ pub async fn set_data_folder(
                 }
                 Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
                     "success": false,
-                    "error": format!("Failed to initialize database: {}", e)
+                    "error": format!("Failed to initialize database: {e}")
                 }))),
             }
         }
@@ -111,19 +117,19 @@ pub async fn start_download(
     data: AppState,
     req: web::Json<StartDownloadRequest>,
 ) -> Result<HttpResponse> {
-    let config = data.config.lock().unwrap();
-
     // Check if data folder is set
-    let _data_folder = match &config.data_folder {
-        Some(folder) => folder.clone(),
-        None => {
-            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
-                "success": false,
-                "error": "Data folder not set. Please set a data folder first."
-            })));
+    let _data_folder = {
+        let config = data.config.lock().unwrap();
+        match &config.data_folder {
+            Some(folder) => folder.clone(),
+            None => {
+                return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                    "success": false,
+                    "error": "Data folder not set. Please set a data folder first."
+                })));
+            }
         }
     };
-    drop(config);
 
     // Check if database exists
     let database = match &data.database {
