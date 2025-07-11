@@ -37,9 +37,10 @@ webapp/
 - **ML Models**: gline-rs for named entity recognition
 - **LLM Integration**: mistral.rs for local LLMs (LLama, Gemma, etc.)
 
-**Frontend (SolidJS)**
-- **Framework**: SolidJS for reactive UI
+**Frontend (React)**
+- **Framework**: React for reactive UI
 - **Styling**: Tailwind CSS for utility-first styling
+- **Component Library**: shadcn/ui for pre-built components
 
 **Data Sources**
 - **Hacker News API**: Firebase-based REST API
@@ -54,7 +55,7 @@ This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) 
 - [gline-rs](https://github.com/fbilhaut/gline-rs) for entity extraction, in Rust
 - [GLiNER](https://github.com/urchade/GLiNER) for entity extraction (original in Python)
 - [mistral.rs](https://github.com/EricLBuehler/mistral.rs) for LLM inference, in Rust
-- [SolidJS](https://www.solidjs.com/) and [Rust](https://www.rust-lang.org/) communities
+- [React](https://react.dev/) and [Rust](https://www.rust-lang.org/) communities
 
 ## 📞 Support
 
