@@ -1,34 +1,43 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Navigation } from './components/Navigation'
+import { Settings } from './components/Settings'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentView, setCurrentView] = useState<'dashboard' | 'settings'>('dashboard')
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className="flex min-h-screen bg-gray-50">
+      <Navigation onSettingsClick={() => setCurrentView('settings')} />
+      <main className="flex-1">
+        {currentView === 'settings' ? (
+          <Settings />
+        ) : (
+          <div className="p-8">
+            <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h2 className="text-xl font-semibold mb-2">Welcome to Pixlie</h2>
+                <p className="text-gray-600">
+                  Smart Entity Analysis for Hacker News Discussions
+                </p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h2 className="text-xl font-semibold mb-2">Data Collection</h2>
+                <p className="text-gray-600">
+                  Configure your Hacker News data collection in Settings
+                </p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h2 className="text-xl font-semibold mb-2">Entity Analysis</h2>
+                <p className="text-gray-600">
+                  Advanced NLP for startup and investor insights
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   )
 }
 
