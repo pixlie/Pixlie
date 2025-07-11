@@ -70,6 +70,23 @@ pub struct StartExtractionRequest {
     pub batch_size: Option<u64>,
 }
 
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct GetItemsRequest {
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct GetItemsResponse {
+    pub items: Vec<crate::database::HnItem>,
+    pub total_count: u32,
+    pub page: u32,
+    pub limit: u32,
+    pub total_pages: u32,
+}
+
 pub async fn get_config(data: AppState) -> Result<HttpResponse> {
     let config_path =
         Config::get_config_path().map_err(actix_web::error::ErrorInternalServerError)?;
@@ -632,4 +649,68 @@ async fn perform_extraction(
     }
 
     Ok(())
+}
+
+pub async fn get_items(data: AppState, req: web::Query<GetItemsRequest>) -> Result<HttpResponse> {
+    // Check if database exists
+    let database = match &data.database {
+        Some(db) => db,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Database not initialized. Please set a data folder first."
+            })));
+        }
+    };
+
+    let page = req.page.unwrap_or(1);
+    let limit = req.limit.unwrap_or(100);
+
+    // Ensure page is at least 1
+    let page = if page < 1 { 1 } else { page };
+
+    // Calculate offset
+    let offset = (page - 1) * limit;
+
+    // Get total count for pagination info
+    let total_count = match database.get_total_items_count().await {
+        Ok(count) => count as u32,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to get total count: {}", e)
+            })));
+        }
+    };
+
+    // Get paginated items
+    let items = match database
+        .get_items_paginated(limit as i64, offset as i64)
+        .await
+    {
+        Ok(items) => items,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to fetch items: {}", e)
+            })));
+        }
+    };
+
+    // Calculate total pages
+    let total_pages = if total_count > 0 {
+        (total_count + limit - 1) / limit
+    } else {
+        0
+    };
+
+    let response = GetItemsResponse {
+        items,
+        total_count,
+        page,
+        limit,
+        total_pages,
+    };
+
+    Ok(HttpResponse::Ok().json(response))
 }

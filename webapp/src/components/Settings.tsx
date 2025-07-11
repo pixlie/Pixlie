@@ -3,12 +3,9 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Play, Square, FolderOpen, BarChart3, Download, Brain, Package } from "lucide-react";
-import type {
-  ConfigResponse as Config, // Renaming ConfigResponse to Config for less churn
-  DownloadStats,
-  ModelInfo,
-  ExtractionStats,
-} from "../types/api";
+import type { ConfigResponse as Config } from "../types/ConfigResponse";
+import type { ModelInfo } from "../types/ModelInfo";
+import type { ExtractionStats } from "../types/ExtractionStats";
 
 export function Settings() {
   const [config, setConfig] = useState<Config | null>(null);
@@ -521,7 +518,7 @@ export function Settings() {
                   <div className="mt-4">
                     <h4 className="font-medium mb-2">Entities by Type</h4>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-                      {Object.entries(extractionStats.entities_by_type).map(([type, count]: [string, number]) => (
+                      {Object.entries(extractionStats.entities_by_type).map(([type, count]) => (
                         <div key={type} className="bg-gray-50 p-2 rounded border">
                           <div className="font-medium">{count.toLocaleString()}</div>
                           <div className="text-gray-600 capitalize">{type}</div>
