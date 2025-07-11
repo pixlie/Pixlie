@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Play, Square, FolderOpen, BarChart3 } from "lucide-react";
+import { Play, Square, FolderOpen, BarChart3, Download, Brain, Package } from "lucide-react";
 
 interface DownloadStats {
   total_items: number;
@@ -19,6 +19,23 @@ interface Config {
   download_stats: DownloadStats;
 }
 
+interface ModelInfo {
+  name: string;
+  size_mb: number;
+  download_url: string;
+  is_downloaded: boolean;
+  local_path: string | null;
+}
+
+interface ExtractionStats {
+  total_entities: number;
+  entities_by_type: { [key: string]: number };
+  total_items_processed: number;
+  items_remaining: number;
+  is_extracting: boolean;
+  last_extraction_time: string | null;
+}
+
 export function Settings() {
   const [config, setConfig] = useState<Config | null>(null);
   const [dataFolder, setDataFolder] = useState("");
@@ -26,9 +43,15 @@ export function Settings() {
   const [saving, setSaving] = useState(false);
   const [downloadType, setDownloadType] = useState("stories");
   const [downloadLimit, setDownloadLimit] = useState(100);
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [extractionStats, setExtractionStats] = useState<ExtractionStats | null>(null);
+  const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
+  const [extractionBatchSize, setExtractionBatchSize] = useState(100);
 
   useEffect(() => {
     fetchConfig();
+    fetchModels();
+    fetchExtractionStats();
   }, []);
 
   const fetchConfig = async () => {
@@ -100,6 +123,92 @@ export function Settings() {
       }
     } catch (error) {
       console.error(`Failed to ${action} download:`, error);
+    }
+  };
+
+  const fetchModels = async () => {
+    try {
+      const response = await fetch("/api/models");
+      const data = await response.json();
+      setModels(data.models);
+    } catch (error) {
+      console.error("Failed to fetch models:", error);
+    }
+  };
+
+  const fetchExtractionStats = async () => {
+    try {
+      const response = await fetch("/api/extraction/status");
+      const data = await response.json();
+      setExtractionStats(data.extraction_stats);
+    } catch (error) {
+      console.error("Failed to fetch extraction stats:", error);
+    }
+  };
+
+  const handleDownloadModel = async (modelName: string) => {
+    if (!config?.data_folder) {
+      alert("Please set a data folder first");
+      return;
+    }
+
+    setDownloadingModel(modelName);
+    try {
+      const response = await fetch("/api/models/download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model_name: modelName }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log(result.message);
+        fetchModels(); // Refresh models
+      } else {
+        const error = await response.json();
+        console.error("Model download failed:", error.error);
+      }
+    } catch (error) {
+      console.error("Failed to download model:", error);
+    } finally {
+      setDownloadingModel(null);
+    }
+  };
+
+  const handleExtractionAction = async (action: "start" | "stop") => {
+    try {
+      if (action === "start") {
+        const response = await fetch("/api/extraction/start", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            batch_size: extractionBatchSize,
+          }),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log(result.message);
+          fetchExtractionStats(); // Refresh stats
+        } else {
+          const error = await response.json();
+          console.error("Extraction start failed:", error.error);
+        }
+      } else {
+        const response = await fetch("/api/extraction/stop", {
+          method: "POST",
+        });
+        
+        if (response.ok) {
+          fetchExtractionStats(); // Refresh stats
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to ${action} extraction:`, error);
     }
   };
 
@@ -278,6 +387,181 @@ export function Settings() {
                     <div className="text-gray-600">Last Download</div>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Entity Extraction Models</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600 mb-4">
+              Download ONNX models for entity extraction. Models are used to identify persons, companies, locations, and other entities from Hacker News content.
+            </div>
+            
+            {models.map((model) => (
+              <div key={model.name} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Package className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <div className="font-medium">{model.name}</div>
+                    <div className="text-sm text-gray-600">
+                      Size: {model.size_mb} MB
+                      {model.is_downloaded && (
+                        <span className="ml-2 text-green-600">✓ Downloaded</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => handleDownloadModel(model.name)}
+                  disabled={model.is_downloaded || downloadingModel === model.name || !config?.data_folder}
+                  variant={model.is_downloaded ? "secondary" : "default"}
+                  size="sm"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {downloadingModel === model.name 
+                    ? "Downloading..." 
+                    : model.is_downloaded 
+                      ? "Downloaded" 
+                      : "Download"
+                  }
+                </Button>
+              </div>
+            ))}
+            
+            {!config?.data_folder && (
+              <div className="text-sm text-orange-600">
+                Please set a data folder before downloading models
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Entity Extraction</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600 mb-4">
+              Extract named entities (persons, companies, locations, etc.) from your downloaded Hacker News content using GLiNER models.
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Batch Size
+              </label>
+              <Input
+                type="number"
+                value={extractionBatchSize}
+                onChange={(e) => setExtractionBatchSize(parseInt(e.target.value) || 100)}
+                placeholder="Number of items to process in each batch"
+                disabled={extractionStats?.is_extracting}
+                min={1}
+                max={1000}
+              />
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleExtractionAction("start")}
+                  disabled={
+                    extractionStats?.is_extracting || 
+                    !config?.data_folder ||
+                    !models.some(m => m.is_downloaded)
+                  }
+                  variant={extractionStats?.is_extracting ? "secondary" : "default"}
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  Start Extraction
+                </Button>
+                <Button
+                  onClick={() => handleExtractionAction("stop")}
+                  disabled={!extractionStats?.is_extracting}
+                  variant="destructive"
+                >
+                  <Square className="w-4 h-4 mr-2" />
+                  Pause
+                </Button>
+              </div>
+            </div>
+            
+            <div className="text-sm">
+              Status: {extractionStats?.is_extracting ? "Running" : "Stopped"}
+              {!config?.data_folder && (
+                <span className="text-orange-600 block mt-1">
+                  Please set a data folder before extracting entities
+                </span>
+              )}
+              {!models.some(m => m.is_downloaded) && config?.data_folder && (
+                <span className="text-orange-600 block mt-1">
+                  Please download a model before extracting entities
+                </span>
+              )}
+            </div>
+            
+            {extractionStats && (
+              <div className="mt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="w-4 h-4" />
+                  <h3 className="font-medium">Extraction Statistics</h3>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                  <div className="bg-purple-50 p-3 rounded border border-purple-200">
+                    <div className="font-medium text-purple-900">
+                      {extractionStats.total_entities.toLocaleString()}
+                    </div>
+                    <div className="text-purple-600">Total Entities</div>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                    <div className="font-medium text-blue-900">
+                      {extractionStats.total_items_processed.toLocaleString()}
+                    </div>
+                    <div className="text-blue-600">Items Processed</div>
+                  </div>
+                  <div className="bg-orange-50 p-3 rounded border border-orange-200">
+                    <div className="font-medium text-orange-900">
+                      {extractionStats.items_remaining.toLocaleString()}
+                    </div>
+                    <div className="text-orange-600">Items Remaining</div>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded border border-green-200">
+                    <div className="font-medium text-green-900">
+                      {extractionStats.items_remaining > 0 
+                        ? Math.round((extractionStats.total_items_processed / (extractionStats.total_items_processed + extractionStats.items_remaining)) * 100)
+                        : 100
+                      }%
+                    </div>
+                    <div className="text-green-600">Progress</div>
+                  </div>
+                </div>
+                
+                {Object.keys(extractionStats.entities_by_type).length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Entities by Type</h4>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+                      {Object.entries(extractionStats.entities_by_type).map(([type, count]) => (
+                        <div key={type} className="bg-gray-50 p-2 rounded border">
+                          <div className="font-medium">{count.toLocaleString()}</div>
+                          <div className="text-gray-600 capitalize">{type}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {extractionStats.last_extraction_time && (
+                  <div className="mt-4 text-sm text-gray-600">
+                    Last extraction: {formatLastDownloadTime(extractionStats.last_extraction_time)}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -41,6 +41,29 @@ pub struct DownloadStats {
     pub is_downloading: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct Entity {
+    pub id: i64,
+    pub item_id: i64,
+    pub entity_type: String, // Person, Company, Location, Date, Financial Amount, etc.
+    pub entity_value: String, // Trimmed, clean entity text
+    pub original_text: String, // Original text where entity was found
+    pub start_offset: i64,
+    pub end_offset: i64,
+    pub confidence: Option<f64>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtractionStats {
+    pub total_entities: u64,
+    pub entities_by_type: std::collections::HashMap<String, u64>,
+    pub total_items_processed: u64,
+    pub items_remaining: u64,
+    pub is_extracting: bool,
+    pub last_extraction_time: Option<DateTime<Utc>>,
+}
+
 pub struct Database {
     pub pool: SqlitePool,
 }
@@ -122,6 +145,42 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        // Create entities table for storing extracted entities
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS entities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL,
+                entity_type TEXT NOT NULL,
+                entity_value TEXT NOT NULL,
+                original_text TEXT NOT NULL,
+                start_offset INTEGER NOT NULL,
+                end_offset INTEGER NOT NULL,
+                confidence REAL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (item_id) REFERENCES hn_items (id)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create extraction_log table for tracking entity extraction sessions
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS extraction_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entities_count INTEGER NOT NULL DEFAULT 0,
+                items_processed INTEGER NOT NULL DEFAULT 0,
+                started_at DATETIME NOT NULL,
+                completed_at DATETIME,
+                status TEXT NOT NULL DEFAULT 'running' -- 'running', 'completed', 'failed', 'paused'
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
         // Create indexes for better performance
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_items_type ON hn_items(item_type)")
             .execute(&self.pool)
@@ -132,6 +191,19 @@ impl Database {
             .await?;
 
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_items_by ON hn_items(by)")
+            .execute(&self.pool)
+            .await?;
+
+        // Create indexes for entities table
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_entities_item_id ON entities(item_id)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(entity_type)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_entities_value ON entities(entity_value)")
             .execute(&self.pool)
             .await?;
 
@@ -166,6 +238,7 @@ impl Database {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn insert_user(&self, user: &HnUser) -> Result<(), sqlx::Error> {
         sqlx::query(
             r#"
@@ -272,6 +345,7 @@ impl Database {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn get_item_count(&self) -> Result<u64, sqlx::Error> {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM hn_items")
             .fetch_one(&self.pool)
@@ -279,6 +353,7 @@ impl Database {
         Ok(count as u64)
     }
 
+    #[allow(dead_code)]
     pub async fn item_exists(&self, id: i64) -> Result<bool, sqlx::Error> {
         let exists: bool = sqlx::query_scalar("SELECT COUNT(*) > 0 FROM hn_items WHERE id = ?")
             .bind(id)
@@ -292,5 +367,143 @@ impl Database {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    // Entity extraction methods
+    pub async fn insert_entity(&self, entity: &Entity) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO entities 
+            (item_id, entity_type, entity_value, original_text, start_offset, end_offset, confidence, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(entity.item_id)
+        .bind(&entity.entity_type)
+        .bind(&entity.entity_value)
+        .bind(&entity.original_text)
+        .bind(entity.start_offset)
+        .bind(entity.end_offset)
+        .bind(entity.confidence)
+        .bind(entity.created_at)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_extraction_stats(&self) -> Result<ExtractionStats, sqlx::Error> {
+        let total_entities: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM entities")
+            .fetch_one(&self.pool)
+            .await?;
+
+        let total_items_processed: i64 =
+            sqlx::query_scalar("SELECT COUNT(DISTINCT item_id) FROM entities")
+                .fetch_one(&self.pool)
+                .await?;
+
+        let total_items: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM hn_items")
+            .fetch_one(&self.pool)
+            .await?;
+
+        let items_remaining = total_items - total_items_processed;
+
+        let is_extracting: bool =
+            sqlx::query_scalar("SELECT COUNT(*) > 0 FROM extraction_log WHERE status = 'running'")
+                .fetch_one(&self.pool)
+                .await?;
+
+        let last_extraction_time: Option<DateTime<Utc>> = sqlx::query_scalar(
+            "SELECT MAX(completed_at) FROM extraction_log WHERE status = 'completed'",
+        )
+        .fetch_optional(&self.pool)
+        .await?
+        .flatten();
+
+        // Get entities by type
+        let entity_type_rows: Vec<(String, i64)> = sqlx::query_as(
+            "SELECT entity_type, COUNT(*) as count FROM entities GROUP BY entity_type",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let entities_by_type = entity_type_rows
+            .into_iter()
+            .map(|(entity_type, count)| (entity_type, count as u64))
+            .collect();
+
+        Ok(ExtractionStats {
+            total_entities: total_entities as u64,
+            entities_by_type,
+            total_items_processed: total_items_processed as u64,
+            items_remaining: items_remaining as u64,
+            is_extracting,
+            last_extraction_time,
+        })
+    }
+
+    pub async fn start_extraction_session(&self) -> Result<i64, sqlx::Error> {
+        let result = sqlx::query("INSERT INTO extraction_log (started_at) VALUES (?)")
+            .bind(Utc::now())
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.last_insert_rowid())
+    }
+
+    pub async fn update_extraction_session(
+        &self,
+        session_id: i64,
+        entities_count: u64,
+        items_processed: u64,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            "UPDATE extraction_log SET entities_count = ?, items_processed = ? WHERE id = ?",
+        )
+        .bind(entities_count as i64)
+        .bind(items_processed as i64)
+        .bind(session_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn complete_extraction_session(
+        &self,
+        session_id: i64,
+        status: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE extraction_log SET completed_at = ?, status = ? WHERE id = ?")
+            .bind(Utc::now())
+            .bind(status)
+            .bind(session_id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn stop_all_extractions(&self) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE extraction_log SET status = 'paused', completed_at = CURRENT_TIMESTAMP WHERE status = 'running'")
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_items_for_extraction(&self, limit: i64) -> Result<Vec<HnItem>, sqlx::Error> {
+        let items = sqlx::query_as::<_, HnItem>(
+            r#"
+            SELECT * FROM hn_items 
+            WHERE id NOT IN (SELECT DISTINCT item_id FROM entities)
+            AND (text IS NOT NULL OR title IS NOT NULL)
+            LIMIT ?
+            "#,
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(items)
     }
 }

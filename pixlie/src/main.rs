@@ -1,6 +1,7 @@
 mod cli;
 mod config;
 mod database;
+mod entity_extraction;
 mod handlers;
 mod hn_api;
 
@@ -10,8 +11,10 @@ use clap::Parser;
 use cli::{Cli, Commands};
 use config::Config;
 use database::Database;
+use entity_extraction::EntityExtractor;
 use handlers::{
-    AppData, get_config, get_download_status, set_data_folder, start_download, stop_download,
+    AppData, download_model, get_config, get_download_status, get_extraction_status, get_models,
+    set_data_folder, start_download, start_extraction, stop_download, stop_extraction,
 };
 use hn_api::HnApiClient;
 use std::sync::{Arc, Mutex};
@@ -67,6 +70,7 @@ async fn start_server(port: u16) -> std::io::Result<()> {
         config: Mutex::new(config),
         database,
         hn_client,
+        entity_extractor: Mutex::new(EntityExtractor::new()),
     });
     let app_state = web::Data::new(app_data);
 
@@ -82,7 +86,12 @@ async fn start_server(port: u16) -> std::io::Result<()> {
                     .route("/data-folder", web::post().to(set_data_folder))
                     .route("/download/start", web::post().to(start_download))
                     .route("/download/stop", web::post().to(stop_download))
-                    .route("/download/status", web::get().to(get_download_status)),
+                    .route("/download/status", web::get().to(get_download_status))
+                    .route("/models", web::get().to(get_models))
+                    .route("/models/download", web::post().to(download_model))
+                    .route("/extraction/start", web::post().to(start_extraction))
+                    .route("/extraction/stop", web::post().to(stop_extraction))
+                    .route("/extraction/status", web::get().to(get_extraction_status)),
             )
     })
     .bind(("127.0.0.1", port))?
