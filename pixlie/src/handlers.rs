@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::task;
+use ts_rs::TS;
 
 pub type AppState = web::Data<Arc<AppData>>;
 
@@ -17,45 +18,54 @@ pub struct AppData {
     pub entity_extractor: Mutex<EntityExtractor>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
+#[ts(export)]
 pub struct ConfigResponse {
     pub config_path: String,
+    #[ts(type = "string | null")]
     pub data_folder: Option<PathBuf>,
     pub download_stats: DownloadStats,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
+#[ts(export)]
 pub struct SetDataFolderRequest {
     pub folder_path: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
+#[ts(export)]
 pub struct DownloadStatusResponse {
     pub download_stats: DownloadStats,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
+#[ts(export)]
 pub struct StartDownloadRequest {
     pub download_type: String, // "stories", "recent", "all"
     pub limit: Option<u64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
+#[ts(export)]
 pub struct ModelsResponse {
     pub models: Vec<ModelInfo>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
+#[ts(export)]
 pub struct DownloadModelRequest {
     pub model_name: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
+#[ts(export)]
 pub struct ExtractionStatusResponse {
     pub extraction_stats: ExtractionStats,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, TS)]
+#[ts(export)]
 pub struct StartExtractionRequest {
     pub batch_size: Option<u64>,
 }
