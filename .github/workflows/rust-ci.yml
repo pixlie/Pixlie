@@ -25,6 +25,10 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        # For pull requests, checkout the head commit of the PR branch
+        # This ensures we test the actual code in the PR, not a merge commit
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -63,6 +67,10 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        # For pull requests, checkout the head commit of the PR branch
+        # This ensures we test the actual code in the PR, not a merge commit
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
