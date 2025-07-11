@@ -30,10 +30,10 @@ cargo run
 cargo test
 
 # Check for linting issues
-cargo clippy
+cargo clippy --all-targets --all-features -- -D warnings
 
 # Format code
-cargo fmt
+cargo fmt --all -- --check
 ```
 
 ### Frontend (`webapp/`)
