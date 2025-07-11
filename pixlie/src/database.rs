@@ -50,9 +50,9 @@ impl Database {
         // Ensure parent directory exists
         if let Some(parent) = db_path.parent() {
             tokio::fs::create_dir_all(parent).await.map_err(|e| {
-                sqlx::Error::Io(std::io::Error::other(
-                    format!("Failed to create database directory: {e}"),
-                ))
+                sqlx::Error::Io(std::io::Error::other(format!(
+                    "Failed to create database directory: {e}"
+                )))
             })?;
         }
 

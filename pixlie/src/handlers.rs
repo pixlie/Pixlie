@@ -349,9 +349,7 @@ async fn perform_download(
                 .complete_download_session(session_id, "completed")
                 .await
                 .map_err(|e| e.to_string())?;
-            println!(
-                "Download completed: {downloaded} items downloaded, {errors} errors"
-            );
+            println!("Download completed: {downloaded} items downloaded, {errors} errors");
         }
         Err(e) => {
             let _ = database
