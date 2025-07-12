@@ -18,7 +18,7 @@ pub struct AppData {
     pub entity_extractor: Mutex<EntityExtractor>,
 }
 
-#[derive(Serialize, TS)]
+#[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ConfigResponse {
     pub config_path: String,
@@ -27,32 +27,32 @@ pub struct ConfigResponse {
     pub download_stats: DownloadStats,
 }
 
-#[derive(Deserialize, TS)]
+#[derive(Deserialize, Serialize, TS)]
 #[ts(export)]
 pub struct SetDataFolderRequest {
     pub folder_path: String,
 }
 
-#[derive(Serialize, TS)]
+#[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct DownloadStatusResponse {
     pub download_stats: DownloadStats,
 }
 
-#[derive(Deserialize, TS)]
+#[derive(Deserialize, Serialize, TS)]
 #[ts(export)]
 pub struct StartDownloadRequest {
     pub download_type: String, // "stories", "recent", "all"
     pub limit: Option<u64>,
 }
 
-#[derive(Serialize, TS)]
+#[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ModelsResponse {
     pub models: Vec<ModelInfo>,
 }
 
-#[derive(Deserialize, TS)]
+#[derive(Deserialize, Serialize, TS)]
 #[ts(export)]
 pub struct DownloadModelRequest {
     pub model_name: String,

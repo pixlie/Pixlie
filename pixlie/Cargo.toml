@@ -19,7 +19,8 @@ gline-rs = "1.0"
 ts-rs = { version = "8.0", features = ["chrono"] }
 
 [dev-dependencies]
-tempfile = "3.10.1" # Or any compatible version
+actix-rt = "2.9.0"
+tempfile = "3.10.1"
 
 [[bin]]
 name = "export_types"
