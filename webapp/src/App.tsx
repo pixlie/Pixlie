@@ -9,7 +9,7 @@ function App() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Navigation />
-      <main className="flex-1">
+      <main className="flex-1 ml-64">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/hn-items" element={<HnItems />} />
