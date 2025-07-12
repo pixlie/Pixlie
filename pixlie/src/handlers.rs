@@ -716,7 +716,7 @@ pub async fn get_items(data: AppState, req: web::Query<GetItemsRequest>) -> Resu
 
     // Calculate total pages
     let total_pages = if total_count > 0 {
-        (total_count + limit - 1) / limit
+        total_count.div_ceil(limit)
     } else {
         0
     };
@@ -783,7 +783,7 @@ pub async fn get_entities(
 
     // Calculate total pages
     let total_pages = if total_count > 0 {
-        (total_count + limit - 1) / limit
+        total_count.div_ceil(limit)
     } else {
         0
     };
