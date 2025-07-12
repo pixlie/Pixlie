@@ -104,6 +104,24 @@ pub struct GetEntitiesResponse {
     pub total_pages: u32,
 }
 
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct GetRelationsRequest {
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+    pub entity_id: Option<i64>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct GetRelationsResponse {
+    pub relations: Vec<crate::database::EntityRelation>,
+    pub total_count: u32,
+    pub page: u32,
+    pub limit: u32,
+    pub total_pages: u32,
+}
+
 pub async fn get_config(data: AppState) -> Result<HttpResponse> {
     let config_path =
         Config::get_config_path().map_err(actix_web::error::ErrorInternalServerError)?;
@@ -792,6 +810,97 @@ pub async fn get_entities(
 
     let response = GetEntitiesResponse {
         entities,
+        total_count,
+        page,
+        limit,
+        total_pages,
+    };
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+pub async fn get_relations(
+    data: AppState,
+    req: web::Query<GetRelationsRequest>,
+) -> Result<HttpResponse> {
+    // Check if database exists
+    let database = match &data.database {
+        Some(db) => db,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Database not initialized. Please set a data folder first."
+            })));
+        }
+    };
+
+    let page = req.page.unwrap_or(1);
+    let limit = req.limit.unwrap_or(100);
+
+    // Ensure page is at least 1
+    let page = if page < 1 { 1 } else { page };
+
+    // Calculate offset
+    let offset = (page - 1) * limit;
+
+    let (relations, total_count) = if let Some(entity_id) = req.entity_id {
+        // Get relations for a specific entity
+        let relations = match database.get_relations_for_entity(entity_id).await {
+            Ok(relations) => relations,
+            Err(e) => {
+                return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                    "success": false,
+                    "error": format!("Failed to fetch relations for entity: {}", e)
+                })));
+            }
+        };
+        let total_count = relations.len() as u32;
+
+        // Apply pagination manually for entity-specific relations
+        let paginated_relations = relations
+            .into_iter()
+            .skip(offset as usize)
+            .take(limit as usize)
+            .collect();
+
+        (paginated_relations, total_count)
+    } else {
+        // Get all relations with pagination
+        let total_count = match database.get_total_relations_count().await {
+            Ok(count) => count as u32,
+            Err(e) => {
+                return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                    "success": false,
+                    "error": format!("Failed to get total count: {}", e)
+                })));
+            }
+        };
+
+        let relations = match database
+            .get_relations_paginated(limit as i64, offset as i64)
+            .await
+        {
+            Ok(relations) => relations,
+            Err(e) => {
+                return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                    "success": false,
+                    "error": format!("Failed to fetch relations: {}", e)
+                })));
+            }
+        };
+
+        (relations, total_count)
+    };
+
+    // Calculate total pages
+    let total_pages = if total_count > 0 {
+        total_count.div_ceil(limit)
+    } else {
+        0
+    };
+
+    let response = GetRelationsResponse {
+        relations,
         total_count,
         page,
         limit,

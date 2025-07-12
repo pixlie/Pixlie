@@ -89,6 +89,30 @@ pub struct ExtractionStats {
     pub last_extraction_time: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, TS)]
+#[ts(export)]
+pub struct EntityRelation {
+    pub id: i64,
+    pub subject_entity_id: i64,
+    pub object_entity_id: i64,
+    pub relation_type: String,
+    pub confidence: Option<f64>,
+    #[ts(type = "string")]
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct EntityRelationReference {
+    pub id: i64,
+    pub item_id: i64,
+    pub relation_id: i64,
+    pub original_text: String, // Original text where relation was found
+    pub start_offset: i64,
+    pub end_offset: i64,
+    pub confidence: Option<f64>,
+    pub created_at: DateTime<Utc>,
+}
+
 pub struct Database {
     pub pool: SqlitePool,
 }
@@ -252,6 +276,45 @@ impl Database {
                 started_at DATETIME NOT NULL,
                 completed_at DATETIME,
                 status TEXT NOT NULL DEFAULT 'running' -- 'running', 'completed', 'failed', 'paused'
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create entity_relations table for storing relationships between entities
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS entity_relations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_entity_id INTEGER NOT NULL,
+                object_entity_id INTEGER NOT NULL,
+                relation_type TEXT NOT NULL,
+                confidence REAL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (subject_entity_id) REFERENCES entities (id),
+                FOREIGN KEY (object_entity_id) REFERENCES entities (id),
+                UNIQUE (subject_entity_id, object_entity_id, relation_type)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create entity_relation_references table for tracking where relations were found
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS entity_relation_references (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL,
+                relation_id INTEGER NOT NULL,
+                original_text TEXT NOT NULL,
+                start_offset INTEGER NOT NULL,
+                end_offset INTEGER NOT NULL,
+                confidence REAL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (item_id) REFERENCES hn_items (id),
+                FOREIGN KEY (relation_id) REFERENCES entity_relations (id)
             )
             "#,
         )
@@ -694,5 +757,122 @@ impl Database {
             .fetch_one(&self.pool)
             .await?;
         Ok(count)
+    }
+
+    // Entity relation methods
+    pub async fn get_or_insert_relation(
+        &self,
+        subject_entity_id: i64,
+        object_entity_id: i64,
+        relation_type: &str,
+        confidence: Option<f64>,
+    ) -> Result<i64, sqlx::Error> {
+        // Try to get existing relation
+        let existing_relation: Option<i64> = sqlx::query_scalar(
+            "SELECT id FROM entity_relations WHERE subject_entity_id = ? AND object_entity_id = ? AND relation_type = ?",
+        )
+        .bind(subject_entity_id)
+        .bind(object_entity_id)
+        .bind(relation_type)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if let Some(relation_id) = existing_relation {
+            // Update confidence if provided and higher
+            if let Some(new_confidence) = confidence {
+                sqlx::query(
+                    "UPDATE entity_relations SET confidence = ? WHERE id = ? AND (confidence IS NULL OR confidence < ?)",
+                )
+                .bind(new_confidence)
+                .bind(relation_id)
+                .bind(new_confidence)
+                .execute(&self.pool)
+                .await?;
+            }
+            Ok(relation_id)
+        } else {
+            // Insert new relation
+            let result = sqlx::query(
+                "INSERT INTO entity_relations (subject_entity_id, object_entity_id, relation_type, confidence) VALUES (?, ?, ?, ?)",
+            )
+            .bind(subject_entity_id)
+            .bind(object_entity_id)
+            .bind(relation_type)
+            .bind(confidence)
+            .execute(&self.pool)
+            .await?;
+            Ok(result.last_insert_rowid())
+        }
+    }
+
+    pub async fn insert_relation_reference(
+        &self,
+        item_id: i64,
+        relation_id: i64,
+        original_text: &str,
+        start_offset: i64,
+        end_offset: i64,
+        confidence: Option<f64>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO entity_relation_references 
+            (item_id, relation_id, original_text, start_offset, end_offset, confidence)
+            VALUES (?, ?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(item_id)
+        .bind(relation_id)
+        .bind(original_text)
+        .bind(start_offset)
+        .bind(end_offset)
+        .bind(confidence)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_relations_paginated(
+        &self,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<EntityRelation>, sqlx::Error> {
+        let relations = sqlx::query_as::<_, EntityRelation>(
+            r#"
+            SELECT * FROM entity_relations
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+            "#,
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(relations)
+    }
+
+    pub async fn get_total_relations_count(&self) -> Result<i64, sqlx::Error> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM entity_relations")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(count)
+    }
+
+    pub async fn get_relations_for_entity(
+        &self,
+        entity_id: i64,
+    ) -> Result<Vec<EntityRelation>, sqlx::Error> {
+        let relations = sqlx::query_as::<_, EntityRelation>(
+            r#"
+            SELECT * FROM entity_relations
+            WHERE subject_entity_id = ? OR object_entity_id = ?
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(entity_id)
+        .bind(entity_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(relations)
     }
 }

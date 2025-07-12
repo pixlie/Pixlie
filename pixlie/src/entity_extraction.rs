@@ -4,6 +4,48 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use ts_rs::TS;
 
+// Relation types for startup/investment domain
+#[allow(dead_code)]
+pub const RELATION_TYPES: &[&str] = &[
+    "founded",        // person founded company
+    "co_founded",     // person co-founded company
+    "invested_in",    // person/company invested in company
+    "works_at",       // person works at company
+    "acquired",       // company acquired company
+    "created",        // person/company created product
+    "developed",      // person/company developed technology
+    "leads",          // person leads company/organization
+    "partnered_with", // company partnered with company
+    "competes_with",  // company competes with company
+    "used_by",        // technology used by company
+    "backed_by",      // startup backed by investor
+];
+
+// Relation patterns for mock extraction
+pub const RELATION_PATTERNS: &[(&str, &str)] = &[
+    ("founded", r"(?i)\b(founded|started|launched|established)\b"),
+    ("co_founded", r"(?i)\b(co-?founded|co-?started)\b"),
+    (
+        "invested_in",
+        r"(?i)\b(invested in|funding|backed|financing)\b",
+    ),
+    (
+        "works_at",
+        r"(?i)\b(works at|employed at|engineer at|CEO of)\b",
+    ),
+    ("acquired", r"(?i)\b(acquired|bought|purchased|merger)\b"),
+    ("created", r"(?i)\b(created|built|made|designed)\b"),
+    ("developed", r"(?i)\b(developed|built|engineered)\b"),
+    ("leads", r"(?i)\b(leads|heading|CEO of|CTO of|founder of)\b"),
+    (
+        "partnered_with",
+        r"(?i)\b(partnered with|partnership|collaboration)\b",
+    ),
+    ("competes_with", r"(?i)\b(competes with|rival|competitor)\b"),
+    ("used_by", r"(?i)\b(uses|powered by|built with|using)\b"),
+    ("backed_by", r"(?i)\b(backed by|funded by|supported by)\b"),
+];
+
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ModelInfo {
@@ -177,6 +219,7 @@ impl EntityExtractor {
                 // For demonstration, we'll use a simple mock extraction
                 // In a real implementation, this would use gline-rs
                 let mock_entities = Self::mock_extract_entities(&text, &entity_types);
+                let mut text_entities = Vec::new();
 
                 for (entity_type, entity_value, start, end) in mock_entities {
                     // The entity_value from mock_extract_entities is already effectively "trimmed"
@@ -190,6 +233,15 @@ impl EntityExtractor {
 
                     match entity_id_result {
                         Ok(entity_id) => {
+                            // Store entity info for relation extraction
+                            text_entities.push((
+                                entity_id,
+                                entity_type.clone(),
+                                trimmed_entity_value.clone(),
+                                start,
+                                end,
+                            ));
+
                             // Insert the entity reference
                             if let Err(e) = database
                                 .insert_entity_reference(
@@ -209,6 +261,40 @@ impl EntityExtractor {
                         }
                         Err(e) => {
                             eprintln!("Failed to get or insert entity: {e}");
+                        }
+                    }
+                }
+
+                // Extract relations between entities in this text
+                let mock_relations = Self::mock_extract_relations(&text, &text_entities);
+                for (subject_id, object_id, relation_type, start, end, confidence) in mock_relations
+                {
+                    match database
+                        .get_or_insert_relation(
+                            subject_id,
+                            object_id,
+                            &relation_type,
+                            Some(confidence),
+                        )
+                        .await
+                    {
+                        Ok(relation_id) => {
+                            if let Err(e) = database
+                                .insert_relation_reference(
+                                    item.id,
+                                    relation_id,
+                                    &text[start..end],
+                                    start as i64,
+                                    end as i64,
+                                    Some(confidence),
+                                )
+                                .await
+                            {
+                                eprintln!("Failed to insert relation reference: {e}");
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to get or insert relation: {e}");
                         }
                     }
                 }
@@ -340,6 +426,124 @@ impl EntityExtractor {
 
         entities
     }
+
+    // Mock relation extraction for demonstration
+    // In a real implementation, this would use gline-rs relation extraction
+    fn mock_extract_relations(
+        text: &str,
+        entities: &[(i64, String, String, usize, usize)], // (entity_id, entity_type, entity_value, start, end)
+    ) -> Vec<(i64, i64, String, usize, usize, f64)> {
+        // (subject_id, object_id, relation_type, start, end, confidence)
+        let mut relations = Vec::new();
+        let text_lower = text.to_lowercase();
+
+        // Simple pattern-based relation extraction
+        for (relation_type, _pattern) in RELATION_PATTERNS {
+            let relation_keywords = match *relation_type {
+                "founded" => vec!["founded", "started", "launched", "established"],
+                "co_founded" => vec!["co-founded", "co-started", "cofounded"],
+                "invested_in" => vec!["invested in", "funding", "backed", "financing"],
+                "works_at" => vec!["works at", "employed at", "engineer at", "ceo of"],
+                "acquired" => vec!["acquired", "bought", "purchased", "merger"],
+                "created" => vec!["created", "built", "made", "designed"],
+                "developed" => vec!["developed", "built", "engineered"],
+                "leads" => vec!["leads", "heading", "ceo of", "cto of", "founder of"],
+                _ => continue,
+            };
+
+            for keyword in relation_keywords {
+                if let Some(keyword_pos) = text_lower.find(keyword) {
+                    // Look for entity pairs around this relation keyword
+                    for (
+                        i,
+                        (subject_id, subject_type, _subject_value, subject_start, subject_end),
+                    ) in entities.iter().enumerate()
+                    {
+                        for (object_id, object_type, _object_value, object_start, object_end) in
+                            entities.iter().skip(i + 1)
+                        {
+                            // Check if this relation makes sense for these entity types
+                            if Self::is_valid_relation_for_types(
+                                relation_type,
+                                subject_type,
+                                object_type,
+                            ) {
+                                // Check if entities are close to the relation keyword
+                                let distance_to_subject = if *subject_end < keyword_pos {
+                                    keyword_pos - subject_end
+                                } else {
+                                    subject_start.saturating_sub(keyword_pos + keyword.len())
+                                };
+
+                                let distance_to_object = if *object_end < keyword_pos {
+                                    keyword_pos - object_end
+                                } else {
+                                    object_start.saturating_sub(keyword_pos + keyword.len())
+                                };
+
+                                // If both entities are reasonably close to the relation keyword (within 50 characters)
+                                if distance_to_subject < 50 && distance_to_object < 50 {
+                                    let start_pos =
+                                        (*subject_start).min(*object_start).min(keyword_pos);
+                                    let end_pos = (*subject_end)
+                                        .max(*object_end)
+                                        .max(keyword_pos + keyword.len());
+
+                                    // Base confidence on proximity and entity types
+                                    let proximity_score = 1.0
+                                        - (distance_to_subject + distance_to_object) as f64 / 100.0;
+                                    let confidence = (0.7 + proximity_score * 0.3).min(0.95);
+
+                                    relations.push((
+                                        *subject_id,
+                                        *object_id,
+                                        relation_type.to_string(),
+                                        start_pos,
+                                        end_pos,
+                                        confidence,
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        relations
+    }
+
+    // Check if a relation type is valid for given entity types
+    fn is_valid_relation_for_types(
+        relation_type: &str,
+        subject_type: &str,
+        object_type: &str,
+    ) -> bool {
+        match relation_type {
+            "founded" | "co_founded" => subject_type == "person" && object_type == "company",
+            "invested_in" => {
+                (subject_type == "person" || subject_type == "company") && object_type == "company"
+            }
+            "works_at" => subject_type == "person" && object_type == "company",
+            "acquired" => subject_type == "company" && object_type == "company",
+            "created" | "developed" => {
+                (subject_type == "person" || subject_type == "company")
+                    && (object_type == "product" || object_type == "technology")
+            }
+            "leads" => {
+                subject_type == "person"
+                    && (object_type == "company" || object_type == "organization")
+            }
+            "partnered_with" | "competes_with" => {
+                subject_type == "company" && object_type == "company"
+            }
+            "used_by" => subject_type == "technology" && object_type == "company",
+            "backed_by" => {
+                subject_type == "company" && (object_type == "person" || object_type == "company")
+            }
+            _ => false,
+        }
+    }
 }
 
 impl Default for EntityExtractor {
@@ -452,5 +656,67 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!(refs2.len(), 6); // 3 new references were added
+    }
+
+    #[tokio::test]
+    async fn test_relation_extraction() {
+        let (db, _dir) = setup_test_db().await;
+        let is_extracting = Arc::new(Mutex::new(false));
+        let model_path = Some("mock_model_path".to_string());
+        let session_id = db.start_extraction_session().await.unwrap();
+
+        // Create a mock HnItem with text that contains entities and relations
+        let item = HnItem {
+            id: 1,
+            item_type: "story".to_string(),
+            by: Some("testuser".to_string()),
+            time: Utc::now(),
+            text: Some(
+                "Elon Musk founded Tesla in 2003. Microsoft acquired GitHub for $7.5 billion."
+                    .to_string(),
+            ),
+            url: None,
+            score: None,
+            title: Some("Tech News".to_string()),
+            created_at: Utc::now(),
+            parent: None,
+            kids: None,
+            descendants: None,
+            deleted: false,
+            dead: false,
+        };
+        db.insert_item(&item).await.unwrap();
+
+        // Run extraction
+        let result = EntityExtractor::extract_entities_from_items(
+            vec![item],
+            &db,
+            session_id,
+            is_extracting,
+            model_path,
+        )
+        .await
+        .unwrap();
+
+        // Should extract entities: Elon Musk (person), Tesla (company), Microsoft (company), GitHub (company)
+        assert!(result.0 >= 4); // At least 4 entities extracted
+        assert_eq!(result.1, 1); // 1 item processed
+
+        // Check that relations were created
+        let relations_count = db.get_total_relations_count().await.unwrap();
+        assert!(relations_count >= 1); // At least one relation should be found
+
+        // Get all relations and verify types
+        let relations = db.get_relations_paginated(10, 0).await.unwrap();
+        assert!(!relations.is_empty());
+
+        // Should find "founded" or "acquired" relations
+        let relation_types: Vec<&str> =
+            relations.iter().map(|r| r.relation_type.as_str()).collect();
+        assert!(
+            relation_types
+                .iter()
+                .any(|&t| t == "founded" || t == "acquired")
+        );
     }
 }
