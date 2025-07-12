@@ -1,11 +1,15 @@
-use actix_web::{test, web, App};
-use pixlie::handlers::{get_config, set_data_folder, get_models, download_model, start_download, get_download_status, AppData, ConfigResponse, SetDataFolderRequest, ModelsResponse, DownloadModelRequest, StartDownloadRequest, DownloadStatusResponse};
+use actix_web::{App, test, web};
 use pixlie::config::Config;
+use pixlie::database::Database;
+use pixlie::entity_extraction::EntityExtractor;
+use pixlie::handlers::{
+    AppData, ConfigResponse, DownloadModelRequest, DownloadStatusResponse, ModelsResponse,
+    SetDataFolderRequest, StartDownloadRequest, download_model, get_config, get_download_status,
+    get_models, set_data_folder, start_download,
+};
+use pixlie::hn_api::HnApiClient;
 use std::sync::{Arc, Mutex};
 use tempfile::tempdir;
-use pixlie::database::Database;
-use pixlie::hn_api::HnApiClient;
-use pixlie::entity_extraction::EntityExtractor;
 
 #[actix_rt::test]
 async fn test_get_config() {
@@ -96,8 +100,10 @@ async fn test_download_model() {
     let temp_dir = tempdir().unwrap();
     let data_folder_path = temp_dir.path().to_path_buf();
 
-    let mut config = Config::default();
-    config.data_folder = Some(data_folder_path.clone());
+    let config = Config {
+        data_folder: Some(data_folder_path.clone()),
+        ..Default::default()
+    };
 
     let app_data = Arc::new(AppData {
         config: Mutex::new(config),
@@ -133,8 +139,10 @@ async fn test_get_download_status() {
     let data_folder_path = temp_dir.path().to_path_buf();
     let db_path = data_folder_path.join("hackernews.db");
 
-    let mut config = Config::default();
-    config.data_folder = Some(data_folder_path.clone());
+    let config = Config {
+        data_folder: Some(data_folder_path.clone()),
+        ..Default::default()
+    };
 
     let database = Database::new(&db_path).await.unwrap();
 
@@ -158,7 +166,7 @@ async fn test_get_download_status() {
         .to_request();
 
     let resp: DownloadStatusResponse = test::call_and_read_body_json(&app, req).await;
-    assert_eq!(resp.download_stats.is_downloading, false);
+    assert!(!resp.download_stats.is_downloading);
 }
 
 #[actix_rt::test]
@@ -167,8 +175,10 @@ async fn test_start_download() {
     let data_folder_path = temp_dir.path().to_path_buf();
     let db_path = data_folder_path.join("hackernews.db");
 
-    let mut config = Config::default();
-    config.data_folder = Some(data_folder_path.clone());
+    let config = Config {
+        data_folder: Some(data_folder_path.clone()),
+        ..Default::default()
+    };
 
     let database = Database::new(&db_path).await.unwrap();
 
