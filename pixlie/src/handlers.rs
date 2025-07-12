@@ -479,12 +479,14 @@ pub async fn download_model(
         match EntityExtractor::download_model(&model_name, &models_dir).await {
             Ok(model_path) => {
                 println!("Model {model_name} downloaded successfully to {model_path}");
-                // Load the model into the extractor
-                let mut extractor = app_data.entity_extractor.lock().unwrap();
-                if let Err(e) = extractor.load_model(&model_path) {
-                    eprintln!("Failed to load model: {e}");
-                } else {
-                    println!("Model {model_name} loaded successfully");
+                // Load the model into the shared extractor
+                {
+                    let mut extractor = app_data.entity_extractor.lock().unwrap();
+                    if let Err(e) = extractor.load_model(&model_path) {
+                        eprintln!("Failed to load model: {e}");
+                    } else {
+                        println!("Model {model_name} loaded successfully");
+                    }
                 }
             }
             Err(e) => {

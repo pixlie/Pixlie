@@ -67,11 +67,32 @@ async fn start_server(port: u16) -> std::io::Result<()> {
         None
     };
 
+    // Initialize entity extractor and check for existing models
+    let mut entity_extractor = EntityExtractor::new();
+    if let Some(ref data_folder) = config.data_folder {
+        let models_dir = data_folder.join("models");
+        let models = EntityExtractor::get_available_models_with_status(&models_dir);
+
+        // Try to load the first downloaded model
+        if let Some(downloaded_model) = models.iter().find(|m| m.is_downloaded) {
+            if let Some(ref model_path) = downloaded_model.local_path {
+                if let Err(e) = entity_extractor.load_model(model_path) {
+                    eprintln!(
+                        "Failed to load existing model {}: {e}",
+                        downloaded_model.name
+                    );
+                } else {
+                    println!("Loaded existing model: {}", downloaded_model.name);
+                }
+            }
+        }
+    }
+
     let app_data = Arc::new(AppData {
         config: Mutex::new(config),
         database,
         hn_client,
-        entity_extractor: Mutex::new(EntityExtractor::new()),
+        entity_extractor: Mutex::new(entity_extractor),
     });
     let app_state = web::Data::new(app_data);
 
