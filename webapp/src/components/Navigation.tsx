@@ -23,7 +23,7 @@ const NavLink = ({ to, children, icon: Icon }: { to: string; children: React.Rea
 
 export function Navigation() {
   return (
-    <nav className="w-64 h-screen bg-gray-900 text-white flex flex-col">
+    <nav className="w-64 h-screen bg-gray-900 text-white flex flex-col fixed">
       <div className="p-4">
         <h1 className="text-xl font-bold">Pixlie</h1>
         <p className="text-sm text-gray-400">HN Entity Analysis</p>
