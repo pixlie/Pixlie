@@ -110,12 +110,82 @@ pub struct GetRelationsRequest {
     pub page: Option<u32>,
     pub limit: Option<u32>,
     pub entity_id: Option<i64>,
+    pub relation_type: Option<String>,
 }
 
 #[derive(Serialize, TS)]
 #[ts(export)]
 pub struct GetRelationsResponse {
     pub relations: Vec<crate::database::EntityRelation>,
+    pub total_count: u32,
+    pub page: u32,
+    pub limit: u32,
+    pub total_pages: u32,
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct SearchEntitiesRequest {
+    pub q: Option<String>,
+    pub entity_type: Option<String>,
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct SearchEntitiesResponse {
+    pub entities: Vec<crate::database::Entity>,
+    pub total_count: u32,
+    pub page: u32,
+    pub limit: u32,
+    pub total_pages: u32,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct EntityDetailResponse {
+    pub entity: crate::database::Entity,
+    pub references_count: u32,
+    pub items_count: u32,
+    pub relations_count: u32,
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct GetEntityReferencesRequest {
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct GetEntityReferencesResponse {
+    pub references: Vec<crate::database::EntityReference>,
+    pub total_count: u32,
+    pub page: u32,
+    pub limit: u32,
+    pub total_pages: u32,
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct GetEntityItemsRequest {
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct EntityItemWithHighlights {
+    pub item: crate::database::HnItem,
+    pub highlights: Vec<crate::database::EntityReference>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct GetEntityItemsResponse {
+    pub items: Vec<EntityItemWithHighlights>,
     pub total_count: u32,
     pub page: u32,
     pub limit: u32,
@@ -843,53 +913,90 @@ pub async fn get_relations(
     // Calculate offset
     let offset = (page - 1) * limit;
 
-    let (relations, total_count) = if let Some(entity_id) = req.entity_id {
-        // Get relations for a specific entity
-        let relations = match database.get_relations_for_entity(entity_id).await {
-            Ok(relations) => relations,
-            Err(e) => {
-                return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                    "success": false,
-                    "error": format!("Failed to fetch relations for entity: {}", e)
-                })));
-            }
-        };
-        let total_count = relations.len() as u32;
+    let (relations, total_count) = match (req.entity_id, req.relation_type.as_deref()) {
+        (Some(entity_id), None) => {
+            // Get relations for a specific entity
+            let relations = match database.get_relations_for_entity(entity_id).await {
+                Ok(relations) => relations,
+                Err(e) => {
+                    return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                        "success": false,
+                        "error": format!("Failed to fetch relations for entity: {}", e)
+                    })));
+                }
+            };
+            let total_count = relations.len() as u32;
 
-        // Apply pagination manually for entity-specific relations
-        let paginated_relations = relations
-            .into_iter()
-            .skip(offset as usize)
-            .take(limit as usize)
-            .collect();
+            // Apply pagination manually for entity-specific relations
+            let paginated_relations = relations
+                .into_iter()
+                .skip(offset as usize)
+                .take(limit as usize)
+                .collect();
 
-        (paginated_relations, total_count)
-    } else {
-        // Get all relations with pagination
-        let total_count = match database.get_total_relations_count().await {
-            Ok(count) => count as u32,
-            Err(e) => {
-                return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                    "success": false,
-                    "error": format!("Failed to get total count: {}", e)
-                })));
-            }
-        };
+            (paginated_relations, total_count)
+        }
+        (None, Some(relation_type)) => {
+            // Get relations filtered by type
+            let total_count = match database.get_relations_by_type_count(relation_type).await {
+                Ok(count) => count as u32,
+                Err(e) => {
+                    return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                        "success": false,
+                        "error": format!("Failed to get relations count by type: {}", e)
+                    })));
+                }
+            };
 
-        let relations = match database
-            .get_relations_paginated(limit as i64, offset as i64)
-            .await
-        {
-            Ok(relations) => relations,
-            Err(e) => {
-                return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
-                    "success": false,
-                    "error": format!("Failed to fetch relations: {}", e)
-                })));
-            }
-        };
+            let relations = match database
+                .get_relations_by_type(relation_type, limit as i64, offset as i64)
+                .await
+            {
+                Ok(relations) => relations,
+                Err(e) => {
+                    return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                        "success": false,
+                        "error": format!("Failed to fetch relations by type: {}", e)
+                    })));
+                }
+            };
 
-        (relations, total_count)
+            (relations, total_count)
+        }
+        (Some(_entity_id), Some(_relation_type)) => {
+            // TODO: Implement combined entity_id + relation_type filtering
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "success": false,
+                "error": "Filtering by both entity_id and relation_type is not yet supported"
+            })));
+        }
+        (None, None) => {
+            // Get all relations with pagination
+            let total_count = match database.get_total_relations_count().await {
+                Ok(count) => count as u32,
+                Err(e) => {
+                    return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                        "success": false,
+                        "error": format!("Failed to get total count: {}", e)
+                    })));
+                }
+            };
+
+            let relations = match database
+                .get_relations_paginated(limit as i64, offset as i64)
+                .await
+            {
+                Ok(relations) => relations,
+                Err(e) => {
+                    return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                        "success": false,
+                        "error": format!("Failed to fetch relations: {}", e)
+                    })));
+                }
+            };
+
+            (relations, total_count)
+        }
     };
 
     // Calculate total pages
@@ -901,6 +1008,284 @@ pub async fn get_relations(
 
     let response = GetRelationsResponse {
         relations,
+        total_count,
+        page,
+        limit,
+        total_pages,
+    };
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+// New entity browser handlers
+
+pub async fn search_entities(
+    data: AppState,
+    req: web::Query<SearchEntitiesRequest>,
+) -> Result<HttpResponse> {
+    // Check if database exists
+    let database = match &data.database {
+        Some(db) => db,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Database not initialized. Please set a data folder first."
+            })));
+        }
+    };
+
+    let query = req.q.as_deref().unwrap_or("");
+    let entity_type = req.entity_type.as_deref();
+    let page = req.page.unwrap_or(1);
+    let limit = req.limit.unwrap_or(50);
+
+    // Ensure page is at least 1
+    let page = if page < 1 { 1 } else { page };
+
+    // Calculate offset
+    let offset = (page - 1) * limit;
+
+    if query.is_empty() {
+        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+            "success": false,
+            "error": "Search query 'q' parameter is required"
+        })));
+    }
+
+    // Get total count for pagination
+    let total_count = match database.search_entities_count(query, entity_type).await {
+        Ok(count) => count as u32,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to get search count: {}", e)
+            })));
+        }
+    };
+
+    // Get paginated search results
+    let entities = match database
+        .search_entities(query, entity_type, limit as i64, offset as i64)
+        .await
+    {
+        Ok(entities) => entities,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to search entities: {}", e)
+            })));
+        }
+    };
+
+    // Calculate total pages
+    let total_pages = if total_count > 0 {
+        total_count.div_ceil(limit)
+    } else {
+        0
+    };
+
+    let response = SearchEntitiesResponse {
+        entities,
+        total_count,
+        page,
+        limit,
+        total_pages,
+    };
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+pub async fn get_entity_detail(data: AppState, path: web::Path<i64>) -> Result<HttpResponse> {
+    // Check if database exists
+    let database = match &data.database {
+        Some(db) => db,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Database not initialized. Please set a data folder first."
+            })));
+        }
+    };
+
+    let entity_id = path.into_inner();
+
+    // Get the entity
+    let entity = match database.get_entity_by_id(entity_id).await {
+        Ok(Some(entity)) => entity,
+        Ok(None) => {
+            return Ok(HttpResponse::NotFound().json(serde_json::json!({
+                "success": false,
+                "error": "Entity not found"
+            })));
+        }
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to fetch entity: {}", e)
+            })));
+        }
+    };
+
+    // Get counts for additional information
+    let references_count = database
+        .get_entity_references_count(entity_id)
+        .await
+        .unwrap_or(0) as u32;
+    let items_count = database
+        .get_entity_items_count(entity_id)
+        .await
+        .unwrap_or(0) as u32;
+    let relations = database
+        .get_relations_for_entity(entity_id)
+        .await
+        .unwrap_or_default();
+    let relations_count = relations.len() as u32;
+
+    let response = EntityDetailResponse {
+        entity,
+        references_count,
+        items_count,
+        relations_count,
+    };
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+pub async fn get_entity_references(
+    data: AppState,
+    path: web::Path<i64>,
+    req: web::Query<GetEntityReferencesRequest>,
+) -> Result<HttpResponse> {
+    // Check if database exists
+    let database = match &data.database {
+        Some(db) => db,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Database not initialized. Please set a data folder first."
+            })));
+        }
+    };
+
+    let entity_id = path.into_inner();
+    let page = req.page.unwrap_or(1);
+    let limit = req.limit.unwrap_or(50);
+
+    // Ensure page is at least 1
+    let page = if page < 1 { 1 } else { page };
+
+    // Calculate offset
+    let offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    let total_count = match database.get_entity_references_count(entity_id).await {
+        Ok(count) => count as u32,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to get references count: {}", e)
+            })));
+        }
+    };
+
+    // Get paginated references
+    let references = match database
+        .get_entity_references(entity_id, limit as i64, offset as i64)
+        .await
+    {
+        Ok(references) => references,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to fetch entity references: {}", e)
+            })));
+        }
+    };
+
+    // Calculate total pages
+    let total_pages = if total_count > 0 {
+        total_count.div_ceil(limit)
+    } else {
+        0
+    };
+
+    let response = GetEntityReferencesResponse {
+        references,
+        total_count,
+        page,
+        limit,
+        total_pages,
+    };
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+pub async fn get_entity_items(
+    data: AppState,
+    path: web::Path<i64>,
+    req: web::Query<GetEntityItemsRequest>,
+) -> Result<HttpResponse> {
+    // Check if database exists
+    let database = match &data.database {
+        Some(db) => db,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Database not initialized. Please set a data folder first."
+            })));
+        }
+    };
+
+    let entity_id = path.into_inner();
+    let page = req.page.unwrap_or(1);
+    let limit = req.limit.unwrap_or(20);
+
+    // Ensure page is at least 1
+    let page = if page < 1 { 1 } else { page };
+
+    // Calculate offset
+    let offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    let total_count = match database.get_entity_items_count(entity_id).await {
+        Ok(count) => count as u32,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to get items count: {}", e)
+            })));
+        }
+    };
+
+    // Get paginated items with highlights
+    let items_with_highlights = match database
+        .get_entity_items_with_highlights(entity_id, limit as i64, offset as i64)
+        .await
+    {
+        Ok(items) => items,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to fetch entity items: {}", e)
+            })));
+        }
+    };
+
+    // Convert to response format
+    let items: Vec<EntityItemWithHighlights> = items_with_highlights
+        .into_iter()
+        .map(|(item, highlights)| EntityItemWithHighlights { item, highlights })
+        .collect();
+
+    // Calculate total pages
+    let total_pages = if total_count > 0 {
+        total_count.div_ceil(limit)
+    } else {
+        0
+    };
+
+    let response = GetEntityItemsResponse {
+        items,
         total_count,
         page,
         limit,
