@@ -119,8 +119,8 @@ async function searchEntities(query: string, entityType?: string): Promise<Searc
 }
 
 export function RelationshipGraph({ searchQuery, entityType, onEntitySelect }: RelationshipGraphProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [nodes, setNodes, onNodesChange] = useNodesState([] as Node[])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[])
   const [selectedRelationType, setSelectedRelationType] = useState<string>('')
 
   // Fetch entities with performance optimizations
