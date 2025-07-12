@@ -40,6 +40,12 @@ pub struct HnApiClient {
     client: Client,
 }
 
+impl Default for HnApiClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HnApiClient {
     pub fn new() -> Self {
         let client = Client::builder()

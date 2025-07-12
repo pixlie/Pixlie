@@ -1,5 +1,4 @@
-use crate::database::{Database, Entity, HnItem};
-use chrono::Utc;
+use crate::database::{Database, HnItem};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -180,22 +179,37 @@ impl EntityExtractor {
                 let mock_entities = Self::mock_extract_entities(&text, &entity_types);
 
                 for (entity_type, entity_value, start, end) in mock_entities {
-                    let entity = Entity {
-                        id: 0, // Will be auto-generated
-                        item_id: item.id,
-                        entity_type: entity_type.clone(),
-                        entity_value: entity_value.clone(),
-                        original_text: text[start..end].to_string(),
-                        start_offset: start as i64,
-                        end_offset: end as i64,
-                        confidence: Some(0.85), // Mock confidence
-                        created_at: Utc::now(),
-                    };
+                    // The entity_value from mock_extract_entities is already effectively "trimmed"
+                    // as it uses predefined strings. If it were from raw text, trimming here would be crucial.
+                    let trimmed_entity_value = entity_value.trim().to_string();
 
-                    if let Err(e) = database.insert_entity(&entity).await {
-                        eprintln!("Failed to insert entity: {e}");
-                    } else {
-                        entities_extracted += 1;
+                    // Get or insert the unique entity
+                    let entity_id_result = database
+                        .get_or_insert_entity(&entity_type, &trimmed_entity_value)
+                        .await;
+
+                    match entity_id_result {
+                        Ok(entity_id) => {
+                            // Insert the entity reference
+                            if let Err(e) = database
+                                .insert_entity_reference(
+                                    item.id,
+                                    entity_id,
+                                    &text[start..end],
+                                    start as i64,
+                                    end as i64,
+                                    Some(0.85), // Mock confidence
+                                )
+                                .await
+                            {
+                                eprintln!("Failed to insert entity reference: {e}");
+                            } else {
+                                entities_extracted += 1;
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to get or insert entity: {e}");
+                        }
                     }
                 }
             }
@@ -331,5 +345,112 @@ impl EntityExtractor {
 impl Default for EntityExtractor {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::database::Database;
+    use chrono::Utc;
+
+    use tempfile::tempdir;
+
+    async fn setup_test_db() -> (Database, tempfile::TempDir) {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let db = Database::new(&db_path).await.unwrap();
+        (db, dir)
+    }
+
+    #[tokio::test]
+    async fn test_entity_uniqueness_and_referencing() {
+        let (db, _dir) = setup_test_db().await;
+        let is_extracting = Arc::new(Mutex::new(false));
+        let model_path = Some("mock_model_path".to_string());
+        let session_id = db.start_extraction_session().await.unwrap();
+
+        // Create a mock HnItem with text that contains entities
+        let item = HnItem {
+            id: 1,
+            item_type: "story".to_string(),
+            by: Some("testuser".to_string()),
+            time: Utc::now(),
+            text: Some("Big news from Apple and Microsoft. Also, Rust is cool.".to_string()),
+            url: None,
+            score: None,
+            title: Some("Tech News".to_string()),
+            parent: None,
+            kids: None,
+            descendants: None,
+            deleted: false,
+            dead: false,
+            created_at: Utc::now(),
+        };
+        db.insert_item(&item).await.unwrap(); // Ensure item exists in DB
+
+        // First extraction pass
+        let result1 = EntityExtractor::extract_entities_from_items(
+            vec![item.clone()],
+            &db,
+            session_id,
+            is_extracting.clone(),
+            model_path.clone(),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result1.0, 3); // 3 entities found: Apple, Google, Rust
+        assert_eq!(result1.1, 1); // 1 item processed
+
+        // Verify database state
+        let stats1 = db.get_extraction_stats().await.unwrap();
+        assert_eq!(stats1.total_entities, 3);
+        assert_eq!(stats1.total_items_processed, 1);
+
+        // Check unique entities table
+        let entities: Vec<crate::database::Entity> = sqlx::query_as("SELECT * FROM entities")
+            .fetch_all(&db.pool)
+            .await
+            .unwrap();
+        assert_eq!(entities.len(), 3);
+
+        // Check entity references table
+        let refs1: Vec<crate::database::EntityReference> =
+            sqlx::query_as("SELECT * FROM entity_references")
+                .fetch_all(&db.pool)
+                .await
+                .unwrap();
+        assert_eq!(refs1.len(), 3);
+
+        // Second extraction pass with the same item
+        // Because get_items_for_extraction now excludes processed items,
+        // we need to manually call extract_entities_from_items again to simulate re-processing.
+        // In a real run, this item wouldn't be fetched again.
+        let _result2 = EntityExtractor::extract_entities_from_items(
+            vec![item],
+            &db,
+            session_id,
+            is_extracting.clone(),
+            model_path.clone(),
+        )
+        .await
+        .unwrap();
+
+        // Since the item is processed again, it will re-insert references. Let's adjust the test logic.
+        // A better test would be to check if get_items_for_extraction returns this item.
+        // For now, let's confirm that no new *unique* entities are created.
+
+        let stats2 = db.get_extraction_stats().await.unwrap();
+        assert_eq!(stats2.total_entities, 3); // Still 3 unique entities
+
+        // Check that the references have doubled, since we re-processed the same item.
+        // This confirms the logic of `extract_entities_from_items` itself.
+        let refs2: Vec<crate::database::EntityReference> =
+            sqlx::query_as("SELECT * FROM entity_references")
+                .fetch_all(&db.pool)
+                .await
+                .unwrap();
+        assert_eq!(refs2.len(), 6); // 3 new references were added
     }
 }
