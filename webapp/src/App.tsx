@@ -3,6 +3,7 @@ import { Navigation } from './components/Navigation'
 import { Settings } from './components/Settings'
 import Dashboard from './components/Dashboard' // Assuming Dashboard.tsx is created in components
 import { HnItems } from './components/HnItems'
+import { Entities } from './components/Entities'
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/hn-items" element={<HnItems />} />
+          <Route path="/entities" element={<Entities />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
         <Outlet /> {/* This is where nested routes would render if App was a layout route */}

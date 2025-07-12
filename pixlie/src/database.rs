@@ -55,7 +55,8 @@ pub struct DownloadStats {
     pub is_downloading: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, TS)]
+#[ts(export)]
 pub struct Entity {
     pub id: i64,
     pub item_id: i64,
@@ -65,6 +66,7 @@ pub struct Entity {
     pub start_offset: i64,
     pub end_offset: i64,
     pub confidence: Option<f64>,
+    #[ts(type = "string")]
     pub created_at: DateTime<Utc>,
 }
 
@@ -546,6 +548,33 @@ impl Database {
 
     pub async fn get_total_items_count(&self) -> Result<i64, sqlx::Error> {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM hn_items")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(count)
+    }
+
+    pub async fn get_entities_paginated(
+        &self,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Entity>, sqlx::Error> {
+        let entities = sqlx::query_as::<_, Entity>(
+            r#"
+            SELECT * FROM entities 
+            ORDER BY created_at DESC 
+            LIMIT ? OFFSET ?
+            "#,
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(entities)
+    }
+
+    pub async fn get_total_entities_count(&self) -> Result<i64, sqlx::Error> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM entities")
             .fetch_one(&self.pool)
             .await?;
         Ok(count)
