@@ -44,8 +44,8 @@ fn main() -> std::io::Result<()> {
     export_type::<StartExtractionRequest>(output_dir)?;
     export_type::<GetItemsRequest>(output_dir)?;
     export_type::<GetItemsResponse>(output_dir)?;
-    export_type::<GetEntitiesResponse>(&output_dir)?;
-    export_type::<Entity>(&output_dir)?;
+    export_type::<GetEntitiesResponse>(output_dir)?;
+    export_type::<Entity>(output_dir)?;
 
     // Database
     export_type::<DownloadStats>(output_dir)?;
