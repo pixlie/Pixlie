@@ -13,8 +13,9 @@ use config::Config;
 use database::Database;
 use entity_extraction::EntityExtractor;
 use handlers::{
-    AppData, download_model, get_config, get_download_status, get_entities, get_extraction_status, get_items,
-    get_models, set_data_folder, start_download, start_extraction, stop_download, stop_extraction,
+    AppData, download_model, get_config, get_download_status, get_entities, get_extraction_status,
+    get_items, get_models, set_data_folder, start_download, start_extraction, stop_download,
+    stop_extraction,
 };
 use hn_api::HnApiClient;
 use std::sync::{Arc, Mutex};
