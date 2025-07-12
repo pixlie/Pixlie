@@ -5,7 +5,7 @@ import { EntityBrowser } from '../EntityBrowser'
 
 // Mock the child components
 vi.mock('../EntitySearchBar', () => ({
-  EntitySearchBar: ({ onQueryChange, onEntityTypeChange }: any) => (
+  EntitySearchBar: ({ onQueryChange, onEntityTypeChange }: { onQueryChange: (query: string) => void; onEntityTypeChange: (type: string) => void }) => (
     <div data-testid="search-bar">
       <button onClick={() => onQueryChange('test query')}>Update Query</button>
       <button onClick={() => onEntityTypeChange('person')}>Update Type</button>
@@ -14,11 +14,11 @@ vi.mock('../EntitySearchBar', () => ({
 }))
 
 vi.mock('../EntityList', () => ({
-  EntityList: ({ searchQuery, entityType, onEntitySelect }: any) => (
+  EntityList: ({ searchQuery, entityType, onEntitySelect }: { searchQuery: string; entityType: string; onEntitySelect: (entity: { id: bigint; entity_value: string; entity_type: string }) => void }) => (
     <div data-testid="entity-list">
       <span>Query: {searchQuery}</span>
       <span>Type: {entityType}</span>
-      <button onClick={() => onEntitySelect({ id: 1, entity_value: 'Test Entity', entity_type: 'person' })}>
+      <button onClick={() => onEntitySelect({ id: BigInt(1), entity_value: 'Test Entity', entity_type: 'person' })}>
         Select Entity
       </button>
     </div>
@@ -26,7 +26,7 @@ vi.mock('../EntityList', () => ({
 }))
 
 vi.mock('../RelationshipGraph', () => ({
-  RelationshipGraph: ({ searchQuery, entityType }: any) => (
+  RelationshipGraph: ({ searchQuery, entityType }: { searchQuery: string; entityType: string }) => (
     <div data-testid="relationship-graph">
       <span>Query: {searchQuery}</span>
       <span>Type: {entityType}</span>
@@ -35,7 +35,7 @@ vi.mock('../RelationshipGraph', () => ({
 }))
 
 vi.mock('../EntityDetailModal', () => ({
-  EntityDetailModal: ({ entity, isOpen, onClose }: any) => (
+  EntityDetailModal: ({ entity, isOpen, onClose }: { entity: { entity_value: string }; isOpen: boolean; onClose: () => void }) => (
     isOpen ? (
       <div data-testid="entity-modal">
         <span>Entity: {entity.entity_value}</span>

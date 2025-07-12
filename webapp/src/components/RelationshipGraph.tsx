@@ -219,8 +219,8 @@ export function RelationshipGraph({ searchQuery, entityType, onEntitySelect }: R
 
   // Update React Flow state when graph data changes
   useEffect(() => {
-    setNodes(graphNodes as any)
-    setEdges(graphEdges as any)
+    setNodes(graphNodes)
+    setEdges(graphEdges)
   }, [graphNodes, graphEdges, setNodes, setEdges])
 
   const onConnect = useCallback(
