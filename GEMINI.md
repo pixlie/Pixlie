@@ -45,6 +45,8 @@ The backend is responsible for fetching data from the Hacker News API, performin
 -   **Run tests**: `cargo test`
 -   **Build for production**: `cargo build --release`
 -   **Check code**: `cargo check`
+-   **Check linting issues**: `cargo clippy --all-targets --all-features -- -D warnings`
+-   **Format code**: `cargo fmt --all -- --check`
 
 ---
 
