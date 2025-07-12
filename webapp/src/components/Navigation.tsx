@@ -38,6 +38,9 @@ export function Navigation() {
             <NavLink to="/hn-items" icon={FileText}>HN Items</NavLink>
           </li>
           <li>
+            <NavLink to="/entities" icon={FileText}>Entities</NavLink>
+          </li>
+          <li>
             {/* These are not part of the issue, so they won't navigate for now */}
             <button
               className="flex items-center w-full justify-start text-white py-2 px-3 rounded-md text-sm font-medium hover:bg-gray-800 hover:text-white opacity-50 cursor-not-allowed"

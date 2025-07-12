@@ -87,6 +87,23 @@ pub struct GetItemsResponse {
     pub total_pages: u32,
 }
 
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct GetEntitiesRequest {
+    pub page: Option<u32>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct GetEntitiesResponse {
+    pub entities: Vec<crate::database::Entity>,
+    pub total_count: u32,
+    pub page: u32,
+    pub limit: u32,
+    pub total_pages: u32,
+}
+
 pub async fn get_config(data: AppState) -> Result<HttpResponse> {
     let config_path =
         Config::get_config_path().map_err(actix_web::error::ErrorInternalServerError)?;
@@ -706,6 +723,73 @@ pub async fn get_items(data: AppState, req: web::Query<GetItemsRequest>) -> Resu
 
     let response = GetItemsResponse {
         items,
+        total_count,
+        page,
+        limit,
+        total_pages,
+    };
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+pub async fn get_entities(
+    data: AppState,
+    req: web::Query<GetEntitiesRequest>,
+) -> Result<HttpResponse> {
+    // Check if database exists
+    let database = match &data.database {
+        Some(db) => db,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Database not initialized. Please set a data folder first."
+            })));
+        }
+    };
+
+    let page = req.page.unwrap_or(1);
+    let limit = req.limit.unwrap_or(100);
+
+    // Ensure page is at least 1
+    let page = if page < 1 { 1 } else { page };
+
+    // Calculate offset
+    let offset = (page - 1) * limit;
+
+    // Get total count for pagination info
+    let total_count = match database.get_total_entities_count().await {
+        Ok(count) => count as u32,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to get total count: {}", e)
+            })));
+        }
+    };
+
+    // Get paginated entities
+    let entities = match database
+        .get_entities_paginated(limit as i64, offset as i64)
+        .await
+    {
+        Ok(entities) => entities,
+        Err(e) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to fetch entities: {}", e)
+            })));
+        }
+    };
+
+    // Calculate total pages
+    let total_pages = if total_count > 0 {
+        total_count.div_ceil(limit)
+    } else {
+        0
+    };
+
+    let response = GetEntitiesResponse {
+        entities,
         total_count,
         page,
         limit,

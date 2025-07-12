@@ -297,7 +297,7 @@ impl Database {
     pub async fn insert_item(&self, item: &HnItem) -> Result<(), sqlx::Error> {
         sqlx::query(
             r#"
-            INSERT OR REPLACE INTO hn_items 
+            INSERT OR REPLACE INTO hn_items
             (id, item_type, by, time, text, url, score, title, parent, kids, descendants, deleted, dead, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
@@ -326,7 +326,7 @@ impl Database {
     pub async fn insert_user(&self, user: &HnUser) -> Result<(), sqlx::Error> {
         sqlx::query(
             r#"
-            INSERT OR REPLACE INTO hn_users 
+            INSERT OR REPLACE INTO hn_users
             (id, created, karma, about, submitted, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
             "#,
@@ -629,7 +629,7 @@ impl Database {
     pub async fn get_items_for_extraction(&self, limit: i64) -> Result<Vec<HnItem>, sqlx::Error> {
         let items = sqlx::query_as::<_, HnItem>(
             r#"
-            SELECT * FROM hn_items 
+            SELECT * FROM hn_items
             WHERE id NOT IN (SELECT DISTINCT item_id FROM entity_references)
             AND (text IS NOT NULL OR title IS NOT NULL)
             LIMIT ?
@@ -649,8 +649,8 @@ impl Database {
     ) -> Result<Vec<HnItem>, sqlx::Error> {
         let items = sqlx::query_as::<_, HnItem>(
             r#"
-            SELECT * FROM hn_items 
-            ORDER BY time DESC 
+            SELECT * FROM hn_items
+            ORDER BY time DESC
             LIMIT ? OFFSET ?
             "#,
         )
@@ -664,6 +664,33 @@ impl Database {
 
     pub async fn get_total_items_count(&self) -> Result<i64, sqlx::Error> {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM hn_items")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(count)
+    }
+
+    pub async fn get_entities_paginated(
+        &self,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Entity>, sqlx::Error> {
+        let entities = sqlx::query_as::<_, Entity>(
+            r#"
+            SELECT * FROM entities
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+            "#,
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(entities)
+    }
+
+    pub async fn get_total_entities_count(&self) -> Result<i64, sqlx::Error> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM entities")
             .fetch_one(&self.pool)
             .await?;
         Ok(count)
