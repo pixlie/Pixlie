@@ -18,6 +18,9 @@ env_logger = "0.10"
 gline-rs = "1.0"
 ts-rs = { version = "8.0", features = ["chrono"] }
 
+[dev-dependencies]
+tempfile = "3.10.1" # Or any compatible version
+
 [[bin]]
 name = "export_types"
 path = "src/bin/export_types.rs"
