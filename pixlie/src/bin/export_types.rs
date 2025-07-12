@@ -1,11 +1,11 @@
 // pixlie/src/bin/export_types.rs
 
-use pixlie::database::{DownloadStats, ExtractionStats, HnItem};
+use pixlie::database::{DownloadStats, Entity, ExtractionStats, HnItem};
 use pixlie::entity_extraction::ModelInfo;
 use pixlie::handlers::{
     ConfigResponse, DownloadModelRequest, DownloadStatusResponse, ExtractionStatusResponse,
-    GetItemsRequest, GetItemsResponse, ModelsResponse, SetDataFolderRequest, StartDownloadRequest,
-    StartExtractionRequest,
+    GetEntitiesResponse, GetItemsRequest, GetItemsResponse, ModelsResponse, SetDataFolderRequest,
+    StartDownloadRequest, StartExtractionRequest,
 };
 use std::fs;
 use std::path::Path;
@@ -44,6 +44,8 @@ fn main() -> std::io::Result<()> {
     export_type::<StartExtractionRequest>(&output_dir)?;
     export_type::<GetItemsRequest>(&output_dir)?;
     export_type::<GetItemsResponse>(&output_dir)?;
+    export_type::<GetEntitiesResponse>(&output_dir)?;
+    export_type::<Entity>(&output_dir)?;
 
     // Database
     export_type::<DownloadStats>(&output_dir)?;
