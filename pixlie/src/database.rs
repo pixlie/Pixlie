@@ -64,7 +64,8 @@ pub struct Entity {
     // Consider adding first_seen_at, last_seen_at, total_occurrences if needed later
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, TS)]
+#[ts(export)]
 pub struct EntityReference {
     pub id: i64,
     pub item_id: i64,
@@ -73,6 +74,7 @@ pub struct EntityReference {
     pub start_offset: i64,
     pub end_offset: i64,
     pub confidence: Option<f64>,
+    #[ts(type = "string")]
     pub created_at: DateTime<Utc>,
 }
 
@@ -874,5 +876,205 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
         Ok(relations)
+    }
+
+    // New methods for entity browser functionality
+
+    pub async fn search_entities(
+        &self,
+        query: &str,
+        entity_type: Option<&str>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Entity>, sqlx::Error> {
+        let search_pattern = format!("%{query}%");
+
+        let entities = if let Some(etype) = entity_type {
+            sqlx::query_as::<_, Entity>(
+                r#"
+                SELECT * FROM entities
+                WHERE entity_value LIKE ? AND entity_type = ?
+                ORDER BY entity_value ASC
+                LIMIT ? OFFSET ?
+                "#,
+            )
+            .bind(&search_pattern)
+            .bind(etype)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await?
+        } else {
+            sqlx::query_as::<_, Entity>(
+                r#"
+                SELECT * FROM entities
+                WHERE entity_value LIKE ?
+                ORDER BY entity_value ASC
+                LIMIT ? OFFSET ?
+                "#,
+            )
+            .bind(&search_pattern)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await?
+        };
+
+        Ok(entities)
+    }
+
+    pub async fn search_entities_count(
+        &self,
+        query: &str,
+        entity_type: Option<&str>,
+    ) -> Result<i64, sqlx::Error> {
+        let search_pattern = format!("%{query}%");
+
+        let count = if let Some(etype) = entity_type {
+            sqlx::query_scalar::<_, i64>(
+                r#"
+                SELECT COUNT(*) FROM entities
+                WHERE entity_value LIKE ? AND entity_type = ?
+                "#,
+            )
+            .bind(&search_pattern)
+            .bind(etype)
+            .fetch_one(&self.pool)
+            .await?
+        } else {
+            sqlx::query_scalar::<_, i64>(
+                r#"
+                SELECT COUNT(*) FROM entities
+                WHERE entity_value LIKE ?
+                "#,
+            )
+            .bind(&search_pattern)
+            .fetch_one(&self.pool)
+            .await?
+        };
+
+        Ok(count)
+    }
+
+    pub async fn get_entity_by_id(&self, entity_id: i64) -> Result<Option<Entity>, sqlx::Error> {
+        let entity = sqlx::query_as::<_, Entity>("SELECT * FROM entities WHERE id = ?")
+            .bind(entity_id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(entity)
+    }
+
+    pub async fn get_entity_references(
+        &self,
+        entity_id: i64,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<EntityReference>, sqlx::Error> {
+        let references = sqlx::query_as::<_, EntityReference>(
+            r#"
+            SELECT * FROM entity_references
+            WHERE entity_id = ?
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+            "#,
+        )
+        .bind(entity_id)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(references)
+    }
+
+    pub async fn get_entity_references_count(&self, entity_id: i64) -> Result<i64, sqlx::Error> {
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM entity_references WHERE entity_id = ?")
+                .bind(entity_id)
+                .fetch_one(&self.pool)
+                .await?;
+        Ok(count)
+    }
+
+    pub async fn get_entity_items_with_highlights(
+        &self,
+        entity_id: i64,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<(HnItem, Vec<EntityReference>)>, sqlx::Error> {
+        // First get the items that contain this entity
+        let items = sqlx::query_as::<_, HnItem>(
+            r#"
+            SELECT DISTINCT h.* FROM hn_items h
+            INNER JOIN entity_references er ON h.id = er.item_id
+            WHERE er.entity_id = ?
+            ORDER BY h.created_at DESC
+            LIMIT ? OFFSET ?
+            "#,
+        )
+        .bind(entity_id)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+
+        // Then get all entity references for each item
+        let mut result = Vec::new();
+        for item in items {
+            let references = sqlx::query_as::<_, EntityReference>(
+                "SELECT * FROM entity_references WHERE item_id = ? AND entity_id = ? ORDER BY start_offset ASC",
+            )
+            .bind(item.id)
+            .bind(entity_id)
+            .fetch_all(&self.pool)
+            .await?;
+
+            result.push((item, references));
+        }
+
+        Ok(result)
+    }
+
+    pub async fn get_entity_items_count(&self, entity_id: i64) -> Result<i64, sqlx::Error> {
+        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(DISTINCT item_id) FROM entity_references WHERE entity_id = ?",
+        )
+        .bind(entity_id)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(count)
+    }
+
+    pub async fn get_relations_by_type(
+        &self,
+        relation_type: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<EntityRelation>, sqlx::Error> {
+        let relations = sqlx::query_as::<_, EntityRelation>(
+            r#"
+            SELECT * FROM entity_relations
+            WHERE relation_type = ?
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+            "#,
+        )
+        .bind(relation_type)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(relations)
+    }
+
+    pub async fn get_relations_by_type_count(
+        &self,
+        relation_type: &str,
+    ) -> Result<i64, sqlx::Error> {
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM entity_relations WHERE relation_type = ?")
+                .bind(relation_type)
+                .fetch_one(&self.pool)
+                .await?;
+        Ok(count)
     }
 }

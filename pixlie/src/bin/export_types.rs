@@ -1,12 +1,16 @@
 // pixlie/src/bin/export_types.rs
 
-use pixlie::database::{DownloadStats, Entity, EntityRelation, ExtractionStats, HnItem};
+use pixlie::database::{
+    DownloadStats, Entity, EntityReference, EntityRelation, ExtractionStats, HnItem,
+};
 use pixlie::entity_extraction::ModelInfo;
 use pixlie::handlers::{
-    ConfigResponse, DownloadModelRequest, DownloadStatusResponse, ExtractionStatusResponse,
-    GetEntitiesRequest, GetEntitiesResponse, GetItemsRequest, GetItemsResponse,
-    GetRelationsRequest, GetRelationsResponse, ModelsResponse, SetDataFolderRequest,
-    StartDownloadRequest, StartExtractionRequest,
+    ConfigResponse, DownloadModelRequest, DownloadStatusResponse, EntityDetailResponse,
+    EntityItemWithHighlights, ExtractionStatusResponse, GetEntitiesRequest, GetEntitiesResponse,
+    GetEntityItemsRequest, GetEntityItemsResponse, GetEntityReferencesRequest,
+    GetEntityReferencesResponse, GetItemsRequest, GetItemsResponse, GetRelationsRequest,
+    GetRelationsResponse, ModelsResponse, SearchEntitiesRequest, SearchEntitiesResponse,
+    SetDataFolderRequest, StartDownloadRequest, StartExtractionRequest,
 };
 use std::fs;
 use std::path::Path;
@@ -49,7 +53,16 @@ fn main() -> std::io::Result<()> {
     export_type::<GetEntitiesResponse>(output_dir)?;
     export_type::<GetRelationsRequest>(output_dir)?;
     export_type::<GetRelationsResponse>(output_dir)?;
+    export_type::<SearchEntitiesRequest>(output_dir)?;
+    export_type::<SearchEntitiesResponse>(output_dir)?;
+    export_type::<EntityDetailResponse>(output_dir)?;
+    export_type::<GetEntityReferencesRequest>(output_dir)?;
+    export_type::<GetEntityReferencesResponse>(output_dir)?;
+    export_type::<GetEntityItemsRequest>(output_dir)?;
+    export_type::<GetEntityItemsResponse>(output_dir)?;
+    export_type::<EntityItemWithHighlights>(output_dir)?;
     export_type::<Entity>(output_dir)?;
+    export_type::<EntityReference>(output_dir)?;
     export_type::<EntityRelation>(output_dir)?;
 
     // Database

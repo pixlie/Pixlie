@@ -13,8 +13,9 @@ use config::Config;
 use database::Database;
 use entity_extraction::EntityExtractor;
 use handlers::{
-    AppData, download_model, get_config, get_download_status, get_entities, get_extraction_status,
-    get_items, get_models, get_relations, set_data_folder, start_download, start_extraction,
+    AppData, download_model, get_config, get_download_status, get_entities, get_entity_detail,
+    get_entity_items, get_entity_references, get_extraction_status, get_items, get_models,
+    get_relations, search_entities, set_data_folder, start_download, start_extraction,
     stop_download, stop_extraction,
 };
 use hn_api::HnApiClient;
@@ -116,6 +117,13 @@ async fn start_server(port: u16) -> std::io::Result<()> {
                     .route("/extraction/status", web::get().to(get_extraction_status))
                     .route("/items", web::get().to(get_items))
                     .route("/entities", web::get().to(get_entities))
+                    .route("/entities/search", web::get().to(search_entities))
+                    .route("/entities/{id}", web::get().to(get_entity_detail))
+                    .route(
+                        "/entities/{id}/references",
+                        web::get().to(get_entity_references),
+                    )
+                    .route("/entities/{id}/items", web::get().to(get_entity_items))
                     .route("/relations", web::get().to(get_relations)),
             )
     })
