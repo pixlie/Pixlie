@@ -15,8 +15,8 @@ use database::Database;
 use entity_extraction::EntityExtractor;
 use handlers::{
     AppData, download_model, get_config, get_download_status, get_entities, get_entity_detail,
-    get_entity_items, get_entity_references, get_extraction_status, get_items, get_models,
-    get_llm_conversation, get_relations, list_llm_tools, llm_query, search_entities,
+    get_entity_items, get_entity_references, get_extraction_status, get_items,
+    get_llm_conversation, get_models, get_relations, list_llm_tools, llm_query, search_entities,
     set_data_folder, start_download, start_extraction, stop_download, stop_extraction,
 };
 use hn_api::HnApiClient;

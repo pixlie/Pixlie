@@ -1,8 +1,6 @@
 // pixlie/src/llm/mock.rs
 
-use super::{
-    LLMError, LLMProvider, LLMResponse, ModelInfo, Tool, ToolCall,
-};
+use super::{LLMError, LLMProvider, LLMResponse, ModelInfo, Tool, ToolCall};
 use async_trait::async_trait;
 
 pub struct MockLLMProvider;

@@ -241,10 +241,7 @@ pub struct LLMQueryRequest {
     pub context: Option<String>,
 }
 
-pub async fn llm_query(
-    _data: AppState,
-    req: web::Json<LLMQueryRequest>,
-) -> Result<HttpResponse> {
+pub async fn llm_query(_data: AppState, req: web::Json<LLMQueryRequest>) -> Result<HttpResponse> {
     // For now, we are using a mock provider.
     // In the future, we will use the provider from the config.
     let provider = crate::llm::mock::MockLLMProvider;
