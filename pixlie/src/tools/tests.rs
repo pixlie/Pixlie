@@ -3,8 +3,8 @@
 #[cfg(test)]
 mod tests {
     use crate::tools::{
-        Parameter, ParameterType, ToolArguments, ToolCategory, ToolRegistry, ValidationRule,
-        create_json_schema, ToolHandler, data_query::SearchItemsTool,
+        Parameter, ParameterType, ToolArguments, ToolCategory, ToolHandler, ToolRegistry,
+        ValidationRule, create_json_schema, data_query::SearchItemsTool,
     };
     use serde_json::json;
 
