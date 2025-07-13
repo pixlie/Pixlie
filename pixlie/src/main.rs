@@ -4,6 +4,7 @@ mod database;
 mod entity_extraction;
 mod handlers;
 mod hn_api;
+mod llm;
 
 use actix_web::{App, HttpServer, middleware::Logger, web};
 use clap::Parser;
@@ -15,8 +16,8 @@ use entity_extraction::EntityExtractor;
 use handlers::{
     AppData, download_model, get_config, get_download_status, get_entities, get_entity_detail,
     get_entity_items, get_entity_references, get_extraction_status, get_items, get_models,
-    get_relations, search_entities, set_data_folder, start_download, start_extraction,
-    stop_download, stop_extraction,
+    get_llm_conversation, get_relations, list_llm_tools, llm_query, search_entities,
+    set_data_folder, start_download, start_extraction, stop_download, stop_extraction,
 };
 use hn_api::HnApiClient;
 use std::sync::{Arc, Mutex};
@@ -124,7 +125,10 @@ async fn start_server(port: u16) -> std::io::Result<()> {
                         web::get().to(get_entity_references),
                     )
                     .route("/entities/{id}/items", web::get().to(get_entity_items))
-                    .route("/relations", web::get().to(get_relations)),
+                    .route("/relations", web::get().to(get_relations))
+                    .route("/llm/query", web::post().to(llm_query))
+                    .route("/llm/tools", web::get().to(list_llm_tools))
+                    .route("/llm/conversation", web::get().to(get_llm_conversation)),
             )
     })
     .bind(("127.0.0.1", port))?
