@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { TextHighlighter, HighlightLegend } from '../TextHighlighter'
-import type { EntityReference } from '../../types/EntityReference'
+import type { EntityReference } from '../../types/database'
 
 describe('TextHighlighter', () => {
   const mockText = "This is a test sentence with multiple words to highlight."

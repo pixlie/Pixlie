@@ -9,8 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table';
-import type { GetItemsResponse } from '../types/GetItemsResponse';
-import type { HnItem } from '../types/HnItem';
+import type { GetItemsResponse } from '../types/api';
+import type { HnItem } from '../types/database';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 

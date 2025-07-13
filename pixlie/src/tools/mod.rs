@@ -20,7 +20,6 @@ use ts_rs::TS;
 
 /// Tool categories for organizing tools by functionality
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub enum ToolCategory {
     DataQuery,
     EntityAnalysis,
@@ -30,7 +29,6 @@ pub enum ToolCategory {
 
 /// Parameter types for tool arguments
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub enum ParameterType {
     String,
     Integer,
@@ -43,7 +41,6 @@ pub enum ParameterType {
 
 /// Validation rules for tool parameters
 #[derive(Debug, Clone, Serialize, Deserialize, Default, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ValidationRule {
     pub min_value: Option<f64>,
     pub max_value: Option<f64>,
@@ -55,7 +52,6 @@ pub struct ValidationRule {
 
 /// Tool parameter definition
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct Parameter {
     pub name: String,
     pub param_type: ParameterType,
@@ -68,7 +64,6 @@ pub struct Parameter {
 
 /// Tool parameter schema
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolParameters {
     pub parameters: Vec<Parameter>,
     #[ts(type = "Record<string, unknown>")]
@@ -77,7 +72,6 @@ pub struct ToolParameters {
 
 /// Tool usage example
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolExample {
     pub description: String,
     #[ts(type = "Record<string, unknown>")]
@@ -89,7 +83,6 @@ pub struct ToolExample {
 
 /// Tool constraints and limitations
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolConstraints {
     pub max_execution_time_ms: Option<u64>,
     pub max_result_size: Option<usize>,
@@ -99,7 +92,6 @@ pub struct ToolConstraints {
 
 /// Comprehensive tool descriptor
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolDescriptor {
     pub name: String,
     pub description: String,
@@ -113,7 +105,6 @@ pub struct ToolDescriptor {
 
 /// Tool execution arguments
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolArguments {
     #[ts(type = "Record<string, unknown>")]
     pub parameters: Value,
@@ -122,7 +113,6 @@ pub struct ToolArguments {
 
 /// Query context for tool execution
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct QueryContext {
     pub user_id: Option<String>,
     pub session_id: Option<String>,
@@ -133,7 +123,6 @@ pub struct QueryContext {
 
 /// Tool execution result
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolResult {
     pub success: bool,
     #[ts(type = "unknown")]
@@ -146,7 +135,6 @@ pub struct ToolResult {
 
 /// Validation error for tool parameters
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ValidationError {
     pub field: String,
     pub error_type: String,
@@ -226,7 +214,6 @@ impl Tool {
 
 /// Tool performance metrics
 #[derive(Debug, Clone, Serialize, Deserialize, Default, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolMetrics {
     pub total_executions: u64,
     pub successful_executions: u64,

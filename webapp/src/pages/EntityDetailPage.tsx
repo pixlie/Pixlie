@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { EntityDetailModal } from '../components/EntityDetailModal'
-import type { EntityDetailResponse } from '../types/EntityDetailResponse'
+import type { EntityDetailResponse } from '../types/api'
 
 const API_BASE = 'http://localhost:8080/api'
 

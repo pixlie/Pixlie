@@ -9,7 +9,6 @@ use ts_rs::TS;
 
 /// Simplified HN Item for API responses
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct HnItem {
     pub id: i64,
     pub title: Option<String>,
@@ -25,7 +24,6 @@ pub struct HnItem {
 
 /// Simplified Entity for API responses
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct Entity {
     pub id: i64,
     pub entity_value: String,
@@ -37,7 +35,6 @@ pub struct Entity {
 
 /// Simplified Entity Relation for API responses
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct EntityRelation {
     pub id: i64,
     pub subject_entity_id: i64,
@@ -50,7 +47,6 @@ pub struct EntityRelation {
 
 /// Time range filter for queries
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct TimeRange {
     #[ts(type = "string")]
     pub start: DateTime<Utc>,
@@ -60,7 +56,6 @@ pub struct TimeRange {
 
 /// Score range filter for items
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ScoreRange {
     pub min: i32,
     pub max: i32,
@@ -70,7 +65,6 @@ pub struct ScoreRange {
 
 /// Parameters for searching HN items
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct SearchItemsParams {
     /// Search keywords or phrases to find in item titles and text
     pub query: String,
@@ -89,7 +83,6 @@ pub struct SearchItemsParams {
 
 /// Response from searching HN items
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct SearchItemsResponse {
     pub items: Vec<HnItem>,
     pub total_count: u64,
@@ -99,7 +92,6 @@ pub struct SearchItemsResponse {
 
 /// Filters that were applied to the search
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct SearchItemsFilters {
     pub query: String,
     pub author: Option<String>,
@@ -111,7 +103,6 @@ pub struct SearchItemsFilters {
 
 /// Parameters for filtering HN items
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct FilterItemsParams {
     /// Filter by score range (min and max)
     pub score_range: Option<ScoreRange>,
@@ -128,7 +119,6 @@ pub struct FilterItemsParams {
 
 /// Response from filtering HN items
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct FilterItemsResponse {
     pub items: Vec<HnItem>,
     pub total_count: u64,
@@ -140,7 +130,6 @@ pub struct FilterItemsResponse {
 
 /// Parameters for searching entities
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct SearchEntitiesParams {
     /// Entity name or partial name to search for
     pub query: Option<String>,
@@ -157,7 +146,6 @@ pub struct SearchEntitiesParams {
 
 /// Response from searching entities
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct SearchEntitiesResponse {
     pub entities: Vec<EntityWithStats>,
     pub total_count: u64,
@@ -167,7 +155,6 @@ pub struct SearchEntitiesResponse {
 
 /// Entity with additional statistics
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct EntityWithStats {
     pub entity: Entity,
     pub mentions_count: u32,
@@ -182,7 +169,6 @@ pub struct EntityWithStats {
 
 /// Parameters for exploring entity relationships
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ExploreRelationsParams {
     /// Filter by specific relation type (founded, acquired, works_at, etc.)
     pub relation_type: Option<String>,
@@ -199,7 +185,6 @@ pub struct ExploreRelationsParams {
 
 /// Response from exploring entity relationships
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ExploreRelationsResponse {
     pub relations: Vec<RelationWithEntities>,
     pub total_count: u64,
@@ -209,7 +194,6 @@ pub struct ExploreRelationsResponse {
 
 /// Entity relation with full entity details
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct RelationWithEntities {
     pub relation: EntityRelation,
     pub subject_entity: Entity,
@@ -219,7 +203,6 @@ pub struct RelationWithEntities {
 
 /// Validation result for tool parameters
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ValidationResult {
     pub is_valid: bool,
     pub errors: Vec<ValidationError>,
@@ -228,7 +211,6 @@ pub struct ValidationResult {
 
 /// Validation warning for tool parameters
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ValidationWarning {
     pub field: String,
     pub warning_type: String,
@@ -238,7 +220,6 @@ pub struct ValidationWarning {
 
 /// Tool schema information
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolSchema {
     pub name: String,
     #[ts(type = "Record<string, unknown>")]
@@ -250,7 +231,6 @@ pub struct ToolSchema {
 
 /// Tool schema example
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
-#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolSchemaExample {
     pub name: String,
     pub description: String,

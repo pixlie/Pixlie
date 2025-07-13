@@ -3,10 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { TextHighlighter, HighlightLegend } from './TextHighlighter'
-import type { Entity } from '../types/Entity'
-import type { EntityDetailResponse } from '../types/EntityDetailResponse'
-import type { GetEntityReferencesResponse } from '../types/GetEntityReferencesResponse'
-import type { GetEntityItemsResponse } from '../types/GetEntityItemsResponse'
+import type { Entity } from '../types/database'
+import type { EntityDetailResponse, GetEntityReferencesResponse, GetEntityItemsResponse } from '../types/api'
 
 interface EntityDetailModalProps {
   entity: Entity

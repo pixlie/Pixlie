@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { EntityReference } from '../types/EntityReference'
+import type { EntityReference } from '../types/database'
 
 interface TextHighlighterProps {
   text: string

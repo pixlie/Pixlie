@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue view:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(cargo:*)",
+      "Bash(pnpm build:*)",
+      "Bash(ls:*)",
+      "Bash(RUST_LOG=debug cargo run)",
+      "Bash(sqlite3:*)",
+      "Bash(find:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git commit:*)",
+      "Bash(npx:*)",
+      "Bash(git add:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue create:*)",
+      "Bash(pnpm exec tsc:*)"
+    ],
+    "deny": []
+  }
+}

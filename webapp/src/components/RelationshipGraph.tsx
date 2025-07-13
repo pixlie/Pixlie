@@ -15,10 +15,10 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { Card, CardContent } from './ui/card'
-import type { Entity } from '../types/Entity'
-import type { GetRelationsResponse } from '../types/GetRelationsResponse'
-import type { SearchEntitiesResponse } from '../types/SearchEntitiesResponse'
-import type { GetEntitiesResponse } from '../types/GetEntitiesResponse'
+import type { Entity } from '../types/database'
+import type { GetRelationsResponse } from '../types/api'
+import type { SearchEntitiesResponse } from '../types/api'
+import type { GetEntitiesResponse } from '../types/api'
 
 interface RelationshipGraphProps {
   searchQuery: string
