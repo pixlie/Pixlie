@@ -2,17 +2,19 @@
 
 use super::{
     Parameter, ParameterType, ToolArguments, ToolCategory, ToolConstraints, ToolDescriptor,
-    ToolExample, ToolHandler, ToolParameters, ToolResult, ValidationError, ValidationRule,
-    create_json_schema,
+    ToolExample, ToolHandler, ToolParameters, ToolResult, ToolValidator, ValidationError,
+    ValidationRule, create_json_schema, generate_json_schema, types,
 };
 use async_trait::async_trait;
-use serde_json::json;
+use serde_json::{Value, json};
 
 /// Search HN items by keywords, author, and time range
 #[derive(Debug, Clone)]
 pub struct SearchItemsTool {
     // In a real implementation, this would have database access
     // db_pool: Arc<sqlx::Pool<sqlx::Sqlite>>,
+    parameter_schema: Value,
+    response_schema: Value,
 }
 
 impl Default for SearchItemsTool {
@@ -23,7 +25,10 @@ impl Default for SearchItemsTool {
 
 impl SearchItemsTool {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            parameter_schema: generate_json_schema::<types::SearchItemsParams>(),
+            response_schema: generate_json_schema::<types::SearchItemsResponse>(),
+        }
     }
 
     pub async fn execute(&self, args: ToolArguments) -> ToolResult {
@@ -62,37 +67,21 @@ impl SearchItemsTool {
 
         // TODO: Implement actual database search
         // For now, return mock data
-        let mock_results = json!({
-            "items": [
-                {
-                    "id": 12345,
-                    "title": format!("Mock result for query: {}", query),
-                    "by": author.unwrap_or("mockuser"),
-                    "score": min_score + 10,
-                    "item_type": item_type.unwrap_or("story"),
-                    "time": "2024-01-15T10:30:00Z",
-                    "text": format!("This is a mock search result for the query '{}'", query)
-                },
-                {
-                    "id": 12346,
-                    "title": format!("Another mock result for: {}", query),
-                    "by": "anotheruser",
-                    "score": min_score + 25,
-                    "item_type": item_type.unwrap_or("story"),
-                    "time": "2024-01-14T15:45:00Z",
-                    "text": format!("Second mock result containing '{}'", query)
-                }
-            ],
-            "total_count": 2,
-            "query_time_ms": start_time.elapsed().as_millis(),
-            "filters_applied": {
-                "query": query,
-                "author": author,
-                "item_type": item_type,
-                "min_score": min_score,
-                "limit": limit
-            }
-        });
+        let mock_response = types::SearchItemsResponse {
+            items: vec![], // Mock empty for now - would be populated from database
+            total_count: 2,
+            query_time_ms: start_time.elapsed().as_millis() as u64,
+            filters_applied: types::SearchItemsFilters {
+                query: query.to_string(),
+                author: author.map(|s| s.to_string()),
+                item_type: item_type.map(|s| s.to_string()),
+                min_score: Some(min_score),
+                time_range: None, // TODO: Extract from args
+                limit,
+            },
+        };
+
+        let mock_results = serde_json::to_value(mock_response).unwrap_or(json!({}));
 
         ToolResult {
             success: true,
@@ -180,6 +169,38 @@ impl SearchItemsTool {
                 }),
             },
         ]
+    }
+}
+
+impl ToolValidator for SearchItemsTool {
+    fn validate_parameters(&self, params: &Value) -> types::ValidationResult {
+        // Parse parameters into the expected type
+        match serde_json::from_value::<types::SearchItemsParams>(params.clone()) {
+            Ok(_) => types::ValidationResult {
+                is_valid: true,
+                errors: vec![],
+                warnings: vec![],
+            },
+            Err(e) => types::ValidationResult {
+                is_valid: false,
+                errors: vec![ValidationError {
+                    field: "root".to_string(),
+                    error_type: "deserialization_error".to_string(),
+                    message: format!("Failed to parse parameters: {e}"),
+                    expected: Some("Valid SearchItemsParams object".to_string()),
+                    actual: Some(params.to_string()),
+                }],
+                warnings: vec![],
+            },
+        }
+    }
+
+    fn get_parameter_schema(&self) -> &Value {
+        &self.parameter_schema
+    }
+
+    fn get_response_schema(&self) -> &Value {
+        &self.response_schema
     }
 }
 
@@ -319,7 +340,10 @@ impl ToolHandler for SearchItemsTool {
 
 /// Filter HN items by various criteria
 #[derive(Debug, Clone)]
-pub struct FilterItemsTool;
+pub struct FilterItemsTool {
+    parameter_schema: Value,
+    response_schema: Value,
+}
 
 impl Default for FilterItemsTool {
     fn default() -> Self {
@@ -329,19 +353,30 @@ impl Default for FilterItemsTool {
 
 impl FilterItemsTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            parameter_schema: generate_json_schema::<types::FilterItemsParams>(),
+            response_schema: generate_json_schema::<types::FilterItemsResponse>(),
+        }
     }
 
-    pub async fn execute(&self, args: ToolArguments) -> ToolResult {
+    pub async fn execute(&self, _args: ToolArguments) -> ToolResult {
         let start_time = std::time::Instant::now();
 
         // TODO: Implement actual filtering logic
-        let mock_results = json!({
-            "items": [],
-            "total_count": 0,
-            "filters_applied": args.parameters,
-            "message": "Filtering functionality not yet implemented"
-        });
+        let mock_response = types::FilterItemsResponse {
+            items: vec![], // Mock empty for now - would be populated from database
+            total_count: 0,
+            filters_applied: types::FilterItemsParams {
+                score_range: None,
+                time_range: None,
+                comment_count_range: None,
+                authors: None,
+                limit: 100,
+            },
+            query_time_ms: start_time.elapsed().as_millis() as u64,
+        };
+
+        let mock_results = serde_json::to_value(mock_response).unwrap_or(json!({}));
 
         ToolResult {
             success: true,
@@ -351,6 +386,37 @@ impl FilterItemsTool {
             errors: vec![],
             warnings: vec!["Filtering functionality is not yet fully implemented".to_string()],
         }
+    }
+}
+
+impl ToolValidator for FilterItemsTool {
+    fn validate_parameters(&self, params: &Value) -> types::ValidationResult {
+        match serde_json::from_value::<types::FilterItemsParams>(params.clone()) {
+            Ok(_) => types::ValidationResult {
+                is_valid: true,
+                errors: vec![],
+                warnings: vec![],
+            },
+            Err(e) => types::ValidationResult {
+                is_valid: false,
+                errors: vec![ValidationError {
+                    field: "root".to_string(),
+                    error_type: "deserialization_error".to_string(),
+                    message: format!("Failed to parse parameters: {e}"),
+                    expected: Some("Valid FilterItemsParams object".to_string()),
+                    actual: Some(params.to_string()),
+                }],
+                warnings: vec![],
+            },
+        }
+    }
+
+    fn get_parameter_schema(&self) -> &Value {
+        &self.parameter_schema
+    }
+
+    fn get_response_schema(&self) -> &Value {
+        &self.response_schema
     }
 }
 

@@ -2,14 +2,18 @@
 
 use super::{
     Parameter, ParameterType, ToolArguments, ToolCategory, ToolConstraints, ToolDescriptor,
-    ToolHandler, ToolParameters, ToolResult, ValidationError,
+    ToolHandler, ToolParameters, ToolResult, ToolValidator, ValidationError, generate_json_schema,
+    types,
 };
 use async_trait::async_trait;
-use serde_json::json;
+use serde_json::{Value, json};
 
 /// Explore entity relationships by type
 #[derive(Debug, Clone)]
-pub struct ExploreRelationsTool;
+pub struct ExploreRelationsTool {
+    parameter_schema: Value,
+    response_schema: Value,
+}
 
 impl Default for ExploreRelationsTool {
     fn default() -> Self {
@@ -19,33 +23,30 @@ impl Default for ExploreRelationsTool {
 
 impl ExploreRelationsTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            parameter_schema: generate_json_schema::<types::ExploreRelationsParams>(),
+            response_schema: generate_json_schema::<types::ExploreRelationsResponse>(),
+        }
     }
 
-    pub async fn execute(&self, args: ToolArguments) -> ToolResult {
+    pub async fn execute(&self, _args: ToolArguments) -> ToolResult {
         let start_time = std::time::Instant::now();
 
         // TODO: Implement actual relation exploration
-        let mock_results = json!({
-            "relations": [
-                {
-                    "id": 1,
-                    "subject_entity": "Sam Altman",
-                    "object_entity": "OpenAI",
-                    "relation_type": "founded",
-                    "confidence": 0.98
-                },
-                {
-                    "id": 2,
-                    "subject_entity": "OpenAI",
-                    "object_entity": "ChatGPT",
-                    "relation_type": "developed",
-                    "confidence": 0.99
-                }
-            ],
-            "total_count": 2,
-            "query_applied": args.parameters
-        });
+        let mock_response = types::ExploreRelationsResponse {
+            relations: vec![], // Mock empty for now - would be populated from database
+            total_count: 2,
+            query_applied: types::ExploreRelationsParams {
+                relation_type: None,
+                entity_id: None,
+                entity_name: None,
+                min_confidence: None,
+                limit: 100,
+            },
+            query_time_ms: start_time.elapsed().as_millis() as u64,
+        };
+
+        let mock_results = serde_json::to_value(mock_response).unwrap_or(json!({}));
 
         ToolResult {
             success: true,
@@ -57,6 +58,37 @@ impl ExploreRelationsTool {
                 "Relation exploration functionality is not yet fully implemented".to_string(),
             ],
         }
+    }
+}
+
+impl ToolValidator for ExploreRelationsTool {
+    fn validate_parameters(&self, params: &Value) -> types::ValidationResult {
+        match serde_json::from_value::<types::ExploreRelationsParams>(params.clone()) {
+            Ok(_) => types::ValidationResult {
+                is_valid: true,
+                errors: vec![],
+                warnings: vec![],
+            },
+            Err(e) => types::ValidationResult {
+                is_valid: false,
+                errors: vec![ValidationError {
+                    field: "root".to_string(),
+                    error_type: "deserialization_error".to_string(),
+                    message: format!("Failed to parse parameters: {e}"),
+                    expected: Some("Valid ExploreRelationsParams object".to_string()),
+                    actual: Some(params.to_string()),
+                }],
+                warnings: vec![],
+            },
+        }
+    }
+
+    fn get_parameter_schema(&self) -> &Value {
+        &self.parameter_schema
+    }
+
+    fn get_response_schema(&self) -> &Value {
+        &self.response_schema
     }
 }
 
