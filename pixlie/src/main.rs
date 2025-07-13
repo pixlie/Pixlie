@@ -5,6 +5,7 @@ mod entity_extraction;
 mod handlers;
 mod hn_api;
 mod llm;
+mod tools;
 
 use actix_web::{App, HttpServer, middleware::Logger, web};
 use clap::Parser;
@@ -92,13 +93,18 @@ async fn start_server(port: u16) -> std::io::Result<()> {
     }
 
     // Initialize tool registry with available tools
-    let mut tool_registry = pixlie::tools::ToolRegistry::new();
-    tool_registry.register(Box::new(pixlie::tools::data_query::SearchItemsTool::new()));
-    tool_registry.register(Box::new(
-        pixlie::tools::entity_analysis::SearchEntitiesTool::new(),
+    let mut tool_registry = tools::ToolRegistry::new();
+    tool_registry.register(tools::Tool::SearchItems(
+        tools::data_query::SearchItemsTool::new(),
     ));
-    tool_registry.register(Box::new(
-        pixlie::tools::relation_exploration::ExploreRelationsTool::new(),
+    tool_registry.register(tools::Tool::FilterItems(
+        tools::data_query::FilterItemsTool::new(),
+    ));
+    tool_registry.register(tools::Tool::SearchEntities(
+        tools::entity_analysis::SearchEntitiesTool::new(),
+    ));
+    tool_registry.register(tools::Tool::ExploreRelations(
+        tools::relation_exploration::ExploreRelationsTool::new(),
     ));
 
     let app_data = Arc::new(AppData {

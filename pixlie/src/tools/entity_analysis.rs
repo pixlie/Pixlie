@@ -8,17 +8,21 @@ use async_trait::async_trait;
 use serde_json::json;
 
 /// Search entities by name, type, and confidence
+#[derive(Debug, Clone)]
 pub struct SearchEntitiesTool;
+
+impl Default for SearchEntitiesTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl SearchEntitiesTool {
     pub fn new() -> Self {
         Self
     }
-}
 
-#[async_trait]
-impl ToolHandler for SearchEntitiesTool {
-    async fn execute(&self, args: ToolArguments) -> ToolResult {
+    pub async fn execute(&self, args: ToolArguments) -> ToolResult {
         let start_time = std::time::Instant::now();
 
         // TODO: Implement actual entity search
@@ -52,7 +56,10 @@ impl ToolHandler for SearchEntitiesTool {
             warnings: vec!["Entity search functionality is not yet fully implemented".to_string()],
         }
     }
+}
 
+#[async_trait]
+impl ToolHandler for SearchEntitiesTool {
     fn describe(&self) -> ToolDescriptor {
         ToolDescriptor {
             name: "search_entities".to_string(),

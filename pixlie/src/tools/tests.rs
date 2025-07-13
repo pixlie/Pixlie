@@ -1,9 +1,9 @@
 // pixlie/src/tools/tests.rs
 
 #[cfg(test)]
-mod tests {
+mod tool_tests {
     use crate::tools::{
-        Parameter, ParameterType, ToolArguments, ToolCategory, ToolHandler, ToolRegistry,
+        Parameter, ParameterType, Tool, ToolArguments, ToolCategory, ToolHandler, ToolRegistry,
         ValidationRule, create_json_schema, data_query::SearchItemsTool,
     };
     use serde_json::json;
@@ -66,11 +66,12 @@ mod tests {
         let mut registry = ToolRegistry::new();
 
         // Register a tool
-        registry.register(Box::new(SearchItemsTool::new()));
+        registry.register(Tool::SearchItems(SearchItemsTool::new()));
 
         // Check that tool is registered
         let tool = registry.get_tool("search_items");
         assert!(tool.is_some());
+        assert_eq!(tool.unwrap().name(), "search_items".to_string());
 
         // Check descriptors
         let descriptors = registry.get_all_descriptors();

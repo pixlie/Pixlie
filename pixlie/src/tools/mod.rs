@@ -37,7 +37,7 @@ pub enum ParameterType {
 }
 
 /// Validation rules for tool parameters
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ValidationRule {
     pub min_value: Option<f64>,
     pub max_value: Option<f64>,
@@ -136,9 +136,6 @@ pub struct ValidationError {
 /// Tool handler trait for executing tools
 #[async_trait]
 pub trait ToolHandler: Send + Sync {
-    /// Execute the tool with given arguments
-    async fn execute(&self, args: ToolArguments) -> ToolResult;
-
     /// Get the tool descriptor
     fn describe(&self) -> ToolDescriptor;
 
@@ -148,6 +145,48 @@ pub trait ToolHandler: Send + Sync {
     /// Get tool performance metrics
     fn get_metrics(&self) -> ToolMetrics {
         ToolMetrics::default()
+    }
+}
+
+/// Concrete tool implementations
+#[derive(Debug, Clone)]
+pub enum Tool {
+    SearchItems(data_query::SearchItemsTool),
+    FilterItems(data_query::FilterItemsTool),
+    SearchEntities(entity_analysis::SearchEntitiesTool),
+    ExploreRelations(relation_exploration::ExploreRelationsTool),
+}
+
+impl Tool {
+    pub async fn execute(&self, args: ToolArguments) -> ToolResult {
+        match self {
+            Tool::SearchItems(tool) => tool.execute(args).await,
+            Tool::FilterItems(tool) => tool.execute(args).await,
+            Tool::SearchEntities(tool) => tool.execute(args).await,
+            Tool::ExploreRelations(tool) => tool.execute(args).await,
+        }
+    }
+
+    pub fn describe(&self) -> ToolDescriptor {
+        match self {
+            Tool::SearchItems(tool) => tool.describe(),
+            Tool::FilterItems(tool) => tool.describe(),
+            Tool::SearchEntities(tool) => tool.describe(),
+            Tool::ExploreRelations(tool) => tool.describe(),
+        }
+    }
+
+    pub fn validate_args(&self, args: &ToolArguments) -> Result<(), Vec<ValidationError>> {
+        match self {
+            Tool::SearchItems(tool) => tool.validate_args(args),
+            Tool::FilterItems(tool) => tool.validate_args(args),
+            Tool::SearchEntities(tool) => tool.validate_args(args),
+            Tool::ExploreRelations(tool) => tool.validate_args(args),
+        }
+    }
+
+    pub fn name(&self) -> String {
+        self.describe().name
     }
 }
 
@@ -163,7 +202,7 @@ pub struct ToolMetrics {
 
 /// Tool registry for managing available tools
 pub struct ToolRegistry {
-    tools: HashMap<String, Box<dyn ToolHandler>>,
+    tools: HashMap<String, Tool>,
     metrics: HashMap<String, ToolMetrics>,
 }
 
@@ -182,15 +221,20 @@ impl ToolRegistry {
     }
 
     /// Register a new tool
-    pub fn register(&mut self, handler: Box<dyn ToolHandler>) {
-        let descriptor = handler.describe();
-        self.tools.insert(descriptor.name.clone(), handler);
+    pub fn register(&mut self, tool: Tool) {
+        let descriptor = tool.describe();
+        self.tools.insert(descriptor.name.clone(), tool);
         self.metrics.insert(descriptor.name, ToolMetrics::default());
     }
 
     /// Get a tool by name
-    pub fn get_tool(&self, name: &str) -> Option<&dyn ToolHandler> {
-        self.tools.get(name).map(|t| t.as_ref())
+    pub fn get_tool(&self, name: &str) -> Option<&Tool> {
+        self.tools.get(name)
+    }
+
+    /// Get a cloned tool by name to avoid lifetime issues
+    pub fn get_tool_cloned(&self, name: &str) -> Option<Tool> {
+        self.tools.get(name).cloned()
     }
 
     /// Get all tool descriptors
@@ -209,7 +253,7 @@ impl ToolRegistry {
 
     /// Execute a tool by name
     pub async fn execute_tool(&mut self, name: &str, args: ToolArguments) -> Option<ToolResult> {
-        if let Some(tool) = self.tools.get(name) {
+        if let Some(tool) = self.tools.get(name).cloned() {
             let start_time = Instant::now();
             let result = tool.execute(args).await;
             let execution_time = start_time.elapsed().as_millis() as u64;

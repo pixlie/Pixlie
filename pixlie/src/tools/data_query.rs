@@ -9,14 +9,99 @@ use async_trait::async_trait;
 use serde_json::json;
 
 /// Search HN items by keywords, author, and time range
+#[derive(Debug, Clone)]
 pub struct SearchItemsTool {
     // In a real implementation, this would have database access
     // db_pool: Arc<sqlx::Pool<sqlx::Sqlite>>,
 }
 
+impl Default for SearchItemsTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SearchItemsTool {
     pub fn new() -> Self {
         Self {}
+    }
+
+    pub async fn execute(&self, args: ToolArguments) -> ToolResult {
+        // Validate arguments first
+        if let Err(errors) = self.validate_args(&args) {
+            return ToolResult {
+                success: false,
+                data: json!(null),
+                message: Some("Validation failed".to_string()),
+                execution_time_ms: 0,
+                errors: errors.iter().map(|e| e.message.clone()).collect(),
+                warnings: vec![],
+            };
+        }
+
+        let start_time = std::time::Instant::now();
+
+        // Extract parameters
+        let query = args
+            .parameters
+            .get("query")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let author = args.parameters.get("author").and_then(|v| v.as_str());
+        let item_type = args.parameters.get("item_type").and_then(|v| v.as_str());
+        let min_score = args
+            .parameters
+            .get("min_score")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0) as i32;
+        let limit = args
+            .parameters
+            .get("limit")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(100) as u32;
+
+        // TODO: Implement actual database search
+        // For now, return mock data
+        let mock_results = json!({
+            "items": [
+                {
+                    "id": 12345,
+                    "title": format!("Mock result for query: {}", query),
+                    "by": author.unwrap_or("mockuser"),
+                    "score": min_score + 10,
+                    "item_type": item_type.unwrap_or("story"),
+                    "time": "2024-01-15T10:30:00Z",
+                    "text": format!("This is a mock search result for the query '{}'", query)
+                },
+                {
+                    "id": 12346,
+                    "title": format!("Another mock result for: {}", query),
+                    "by": "anotheruser",
+                    "score": min_score + 25,
+                    "item_type": item_type.unwrap_or("story"),
+                    "time": "2024-01-14T15:45:00Z",
+                    "text": format!("Second mock result containing '{}'", query)
+                }
+            ],
+            "total_count": 2,
+            "query_time_ms": start_time.elapsed().as_millis(),
+            "filters_applied": {
+                "query": query,
+                "author": author,
+                "item_type": item_type,
+                "min_score": min_score,
+                "limit": limit
+            }
+        });
+
+        ToolResult {
+            success: true,
+            data: mock_results,
+            message: Some(format!("Found items matching query: {query}")),
+            execution_time_ms: start_time.elapsed().as_millis() as u64,
+            errors: vec![],
+            warnings: vec![],
+        }
     }
 
     fn get_parameters() -> Vec<Parameter> {
@@ -98,99 +183,8 @@ impl SearchItemsTool {
     }
 }
 
-impl Default for ValidationRule {
-    fn default() -> Self {
-        Self {
-            min_value: None,
-            max_value: None,
-            min_length: None,
-            max_length: None,
-            pattern: None,
-            allowed_values: None,
-        }
-    }
-}
-
 #[async_trait]
 impl ToolHandler for SearchItemsTool {
-    async fn execute(&self, args: ToolArguments) -> ToolResult {
-        // Validate arguments first
-        if let Err(errors) = self.validate_args(&args) {
-            return ToolResult {
-                success: false,
-                data: json!(null),
-                message: Some("Validation failed".to_string()),
-                execution_time_ms: 0,
-                errors: errors.iter().map(|e| e.message.clone()).collect(),
-                warnings: vec![],
-            };
-        }
-
-        let start_time = std::time::Instant::now();
-
-        // Extract parameters
-        let query = args
-            .parameters
-            .get("query")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        let author = args.parameters.get("author").and_then(|v| v.as_str());
-        let item_type = args.parameters.get("item_type").and_then(|v| v.as_str());
-        let min_score = args
-            .parameters
-            .get("min_score")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0) as i32;
-        let limit = args
-            .parameters
-            .get("limit")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(100) as u32;
-
-        // TODO: Implement actual database search
-        // For now, return mock data
-        let mock_results = json!({
-            "items": [
-                {
-                    "id": 12345,
-                    "title": format!("Mock result for query: {}", query),
-                    "by": author.unwrap_or("mockuser"),
-                    "score": min_score + 10,
-                    "item_type": item_type.unwrap_or("story"),
-                    "time": "2024-01-15T10:30:00Z",
-                    "text": format!("This is a mock search result for the query '{}'", query)
-                },
-                {
-                    "id": 12346,
-                    "title": format!("Another mock result for: {}", query),
-                    "by": "anotheruser",
-                    "score": min_score + 25,
-                    "item_type": item_type.unwrap_or("story"),
-                    "time": "2024-01-14T15:45:00Z",
-                    "text": format!("Second mock result containing '{}'", query)
-                }
-            ],
-            "total_count": 2,
-            "query_time_ms": start_time.elapsed().as_millis(),
-            "filters_applied": {
-                "query": query,
-                "author": author,
-                "item_type": item_type,
-                "min_score": min_score,
-                "limit": limit
-            }
-        });
-
-        ToolResult {
-            success: true,
-            data: mock_results,
-            message: Some(format!("Found items matching query: {}", query)),
-            execution_time_ms: start_time.elapsed().as_millis() as u64,
-            errors: vec![],
-            warnings: vec![],
-        }
-    }
-
     fn describe(&self) -> ToolDescriptor {
         let parameters = Self::get_parameters();
 
@@ -287,7 +281,7 @@ impl ToolHandler for SearchItemsTool {
         // Validate limit parameter
         if let Some(limit) = args.parameters.get("limit") {
             if let Some(limit_num) = limit.as_i64() {
-                if limit_num < 1 || limit_num > 1000 {
+                if !(1..=1000).contains(&limit_num) {
                     errors.push(ValidationError {
                         field: "limit".to_string(),
                         error_type: "out_of_range".to_string(),
@@ -302,7 +296,7 @@ impl ToolHandler for SearchItemsTool {
         // Validate item_type parameter
         if let Some(item_type) = args.parameters.get("item_type") {
             if let Some(item_type_str) = item_type.as_str() {
-                let valid_types = vec!["story", "comment", "job", "poll"];
+                let valid_types = ["story", "comment", "job", "poll"];
                 if !valid_types.contains(&item_type_str) {
                     errors.push(ValidationError {
                         field: "item_type".to_string(),
@@ -324,17 +318,21 @@ impl ToolHandler for SearchItemsTool {
 }
 
 /// Filter HN items by various criteria
+#[derive(Debug, Clone)]
 pub struct FilterItemsTool;
+
+impl Default for FilterItemsTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl FilterItemsTool {
     pub fn new() -> Self {
         Self
     }
-}
 
-#[async_trait]
-impl ToolHandler for FilterItemsTool {
-    async fn execute(&self, args: ToolArguments) -> ToolResult {
+    pub async fn execute(&self, args: ToolArguments) -> ToolResult {
         let start_time = std::time::Instant::now();
 
         // TODO: Implement actual filtering logic
@@ -354,7 +352,10 @@ impl ToolHandler for FilterItemsTool {
             warnings: vec!["Filtering functionality is not yet fully implemented".to_string()],
         }
     }
+}
 
+#[async_trait]
+impl ToolHandler for FilterItemsTool {
     fn describe(&self) -> ToolDescriptor {
         ToolDescriptor {
             name: "filter_items".to_string(),

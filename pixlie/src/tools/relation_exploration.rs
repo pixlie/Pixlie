@@ -8,17 +8,21 @@ use async_trait::async_trait;
 use serde_json::json;
 
 /// Explore entity relationships by type
+#[derive(Debug, Clone)]
 pub struct ExploreRelationsTool;
+
+impl Default for ExploreRelationsTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl ExploreRelationsTool {
     pub fn new() -> Self {
         Self
     }
-}
 
-#[async_trait]
-impl ToolHandler for ExploreRelationsTool {
-    async fn execute(&self, args: ToolArguments) -> ToolResult {
+    pub async fn execute(&self, args: ToolArguments) -> ToolResult {
         let start_time = std::time::Instant::now();
 
         // TODO: Implement actual relation exploration
@@ -54,7 +58,10 @@ impl ToolHandler for ExploreRelationsTool {
             ],
         }
     }
+}
 
+#[async_trait]
+impl ToolHandler for ExploreRelationsTool {
     fn describe(&self) -> ToolDescriptor {
         ToolDescriptor {
             name: "explore_relations".to_string(),
