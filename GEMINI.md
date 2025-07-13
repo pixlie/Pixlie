@@ -36,7 +36,11 @@ The backend is responsible for fetching data from the Hacker News API, performin
     -   `sqlx`: For database interaction.
     -   `reqwest`: For making HTTP requests to the HN API.
     -   `serde`: For serialization/deserialization.
+    -   `tokio`: Asynchronous runtime.
+    -   `chrono`: Date and time library.
     -   `gline-rs`: For Named Entity Recognition.
+    -   `ts-rs`: For generating TypeScript bindings from Rust types.
+    -   `thiserror`: For ergonomic error handling.
     -   `clap`: For the CLI.
 
 ### Common Commands
@@ -58,8 +62,10 @@ The frontend is a single-page application (SPA) for visualizing the data analyze
 -   **Language**: TypeScript
 -   **Build Tool**: Vite
 -   **Styling**: Tailwind CSS
--   **UI Components**: shadcn/ui (inferred from dependencies like `tailwind-merge`, `clsx`, `lucide-react`).
+-   **UI Components**: shadcn/ui (using `tailwind-merge`, `clsx`, `lucide-react`).
 -   **Routing**: React Router (`react-router-dom`).
+-   **Data Fetching**: TanStack Query (`@tanstack/react-query`).
+-   **Graph Visualization**: React Flow (`@xyflow/react`).
 
 ### Common Commands
 
@@ -69,6 +75,8 @@ The `pnpm-lock.yaml` file indicates `pnpm` is the preferred package manager.
 -   **Run the development server**: `pnpm dev`
 -   **Build for production**: `pnpm build`
 -   **Lint files**: `pnpm lint`
+-   **Run tests**: `pnpm test`
+-   **Run tests with UI**: `pnpm test:ui`
 
 ## General Instructions
 
