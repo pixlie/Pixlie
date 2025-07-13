@@ -1,5 +1,7 @@
 // pixlie/src/llm/mod.rs
 
+#![allow(dead_code)]
+
 pub mod mock;
 pub mod tool_registry;
 

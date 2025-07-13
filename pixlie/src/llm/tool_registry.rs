@@ -1,10 +1,18 @@
 // pixlie/src/llm/tool_registry.rs
 
+#![allow(dead_code)]
+
 use super::Tool;
 use std::collections::HashMap;
 
 pub struct ToolRegistry {
     tools: HashMap<String, Tool>,
+}
+
+impl Default for ToolRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ToolRegistry {

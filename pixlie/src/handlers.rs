@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::database::{Database, DownloadStats, ExtractionStats};
 use crate::entity_extraction::{EntityExtractor, ModelInfo};
 use crate::hn_api::HnApiClient;
-use crate::llm::{LLMError, LLMProvider, LLMResponse, Tool, ToolCall};
+use crate::llm::LLMProvider;
 use actix_web::{HttpResponse, Result, web};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
