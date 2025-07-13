@@ -6,18 +6,11 @@ use pixlie::database::{
 use pixlie::entity_extraction::ModelInfo;
 use pixlie::handlers::{
     ConfigResponse, DownloadModelRequest, DownloadStatusResponse, EntityDetailResponse,
-    EntityItemWithHighlights, ExecuteToolRequestNew, ExecuteToolResponse, ExtractionStatusResponse,
-    GetEntitiesRequest, GetEntitiesResponse, GetEntityItemsRequest, GetEntityItemsResponse,
-    GetEntityReferencesRequest, GetEntityReferencesResponse, GetItemsRequest, GetItemsResponse,
-    GetRelationsRequest, GetRelationsResponse, GetToolSchemaResponse, GetToolsResponse,
-    ModelsResponse, SearchEntitiesRequest, SearchEntitiesResponse, SetDataFolderRequest,
-    StartDownloadRequest, StartExtractionRequest, ValidateToolParamsRequest,
-    ValidateToolParamsResponse,
-};
-use pixlie::tools::{
-    Parameter, ParameterType, QueryContext, ToolArguments, ToolCategory, ToolConstraints,
-    ToolDescriptor, ToolExample, ToolMetrics, ToolParameters, ToolResult, ValidationError,
-    ValidationRule, types,
+    EntityItemWithHighlights, ExtractionStatusResponse, GetEntitiesRequest, GetEntitiesResponse,
+    GetEntityItemsRequest, GetEntityItemsResponse, GetEntityReferencesRequest, 
+    GetEntityReferencesResponse, GetItemsRequest, GetItemsResponse, GetRelationsRequest, 
+    GetRelationsResponse, ModelsResponse, SearchEntitiesRequest, SearchEntitiesResponse, 
+    SetDataFolderRequest, StartDownloadRequest, StartExtractionRequest,
 };
 use std::fs;
 use std::path::Path;
@@ -80,50 +73,9 @@ fn main() -> std::io::Result<()> {
     // Entity Extraction
     export_type::<ModelInfo>(output_dir)?;
 
-    // Tool System
-    export_type::<ToolCategory>(output_dir)?;
-    export_type::<ParameterType>(output_dir)?;
-    export_type::<ValidationRule>(output_dir)?;
-    export_type::<Parameter>(output_dir)?;
-    export_type::<ToolParameters>(output_dir)?;
-    export_type::<ToolExample>(output_dir)?;
-    export_type::<ToolConstraints>(output_dir)?;
-    export_type::<ToolDescriptor>(output_dir)?;
-    export_type::<ToolArguments>(output_dir)?;
-    export_type::<QueryContext>(output_dir)?;
-    export_type::<ToolResult>(output_dir)?;
-    export_type::<ValidationError>(output_dir)?;
-    export_type::<ToolMetrics>(output_dir)?;
-
-    // Tool Handlers
-    export_type::<GetToolsResponse>(output_dir)?;
-    export_type::<GetToolSchemaResponse>(output_dir)?;
-    export_type::<ValidateToolParamsRequest>(output_dir)?;
-    export_type::<ValidateToolParamsResponse>(output_dir)?;
-    export_type::<ExecuteToolRequestNew>(output_dir)?;
-    export_type::<ExecuteToolResponse>(output_dir)?;
-
-    // Tool Types
-    export_type::<types::TimeRange>(output_dir)?;
-    export_type::<types::ScoreRange>(output_dir)?;
-    export_type::<types::HnItem>(output_dir)?;
-    export_type::<types::Entity>(output_dir)?;
-    export_type::<types::EntityRelation>(output_dir)?;
-    export_type::<types::SearchItemsParams>(output_dir)?;
-    export_type::<types::SearchItemsResponse>(output_dir)?;
-    export_type::<types::SearchItemsFilters>(output_dir)?;
-    export_type::<types::FilterItemsParams>(output_dir)?;
-    export_type::<types::FilterItemsResponse>(output_dir)?;
-    export_type::<types::SearchEntitiesParams>(output_dir)?;
-    export_type::<types::SearchEntitiesResponse>(output_dir)?;
-    export_type::<types::EntityWithStats>(output_dir)?;
-    export_type::<types::ExploreRelationsParams>(output_dir)?;
-    export_type::<types::ExploreRelationsResponse>(output_dir)?;
-    export_type::<types::RelationWithEntities>(output_dir)?;
-    export_type::<types::ValidationResult>(output_dir)?;
-    export_type::<types::ValidationWarning>(output_dir)?;
-    export_type::<types::ToolSchema>(output_dir)?;
-    export_type::<types::ToolSchemaExample>(output_dir)?;
+    // Note: Tool-related types are automatically exported to webapp/src/types/tools/
+    // by ts-rs based on their #[ts(export, export_to = "webapp/src/types/tools/")] attributes.
+    // We only export general API types here to avoid duplication.
 
     println!(
         "\n✅ All TypeScript types exported successfully to '{}'.",
