@@ -3,12 +3,21 @@ use std::fs;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LLMConfig {
+    pub provider: String,
+    pub model: String,
+    pub api_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     pub data_folder: Option<PathBuf>,
     #[serde(default)]
     pub download_running: bool,
     #[serde(default)]
     pub download_paused: bool,
+    #[serde(default)]
+    pub llm: LLMConfig,
 }
 
 impl Config {

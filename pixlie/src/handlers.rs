@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::database::{Database, DownloadStats, ExtractionStats};
 use crate::entity_extraction::{EntityExtractor, ModelInfo};
 use crate::hn_api::HnApiClient;
+use crate::llm::LLMProvider;
 use actix_web::{HttpResponse, Result, web};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -228,6 +229,46 @@ pub async fn get_config(data: AppState) -> Result<HttpResponse> {
     };
 
     Ok(HttpResponse::Ok().json(response))
+}
+
+// LLM Handlers
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct LLMQueryRequest {
+    pub query: String,
+    #[ts(type = "string | null")]
+    pub context: Option<String>,
+}
+
+pub async fn llm_query(_data: AppState, req: web::Json<LLMQueryRequest>) -> Result<HttpResponse> {
+    // For now, we are using a mock provider.
+    // In the future, we will use the provider from the config.
+    let provider = crate::llm::mock::MockLLMProvider;
+
+    let tools = vec![]; // TODO: Get tools from the tool registry
+
+    let response = provider
+        .send_query(&req.query, &tools, req.context.as_deref())
+        .await;
+
+    match response {
+        Ok(res) => Ok(HttpResponse::Ok().json(res)),
+        Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            "success": false,
+            "error": e.to_string()
+        }))),
+    }
+}
+
+pub async fn list_llm_tools() -> Result<HttpResponse> {
+    let tools: Vec<serde_json::Value> = vec![]; // TODO: Get tools from the tool registry
+    Ok(HttpResponse::Ok().json(tools))
+}
+
+pub async fn get_llm_conversation() -> Result<HttpResponse> {
+    let conversation: Vec<serde_json::Value> = vec![]; // TODO: Implement conversation history
+    Ok(HttpResponse::Ok().json(conversation))
 }
 
 pub async fn set_data_folder(

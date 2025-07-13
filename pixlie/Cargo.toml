@@ -17,6 +17,8 @@ clap = { version = "4.0", features = ["derive"] }
 env_logger = "0.10"
 gline-rs = "1.0"
 ts-rs = { version = "8.0", features = ["chrono"] }
+async-trait = "0.1"
+thiserror = "1.0"
 
 [dev-dependencies]
 actix-rt = "2.9.0"
