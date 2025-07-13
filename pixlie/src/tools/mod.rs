@@ -5,6 +5,7 @@
 pub mod data_query;
 pub mod entity_analysis;
 pub mod relation_exploration;
+pub mod schemas;
 
 #[cfg(test)]
 mod tests;
@@ -133,6 +134,7 @@ pub struct ValidationError {
     pub actual: Option<String>,
 }
 
+use jsonschema::JSONSchema;
 /// Tool handler trait for executing tools
 #[async_trait]
 pub trait ToolHandler: Send + Sync {
@@ -140,7 +142,25 @@ pub trait ToolHandler: Send + Sync {
     fn describe(&self) -> ToolDescriptor;
 
     /// Validate tool arguments before execution
-    fn validate_args(&self, args: &ToolArguments) -> Result<(), Vec<ValidationError>>;
+    fn validate_args(&self, args: &ToolArguments) -> Result<(), Vec<ValidationError>> {
+        let schema = self.describe().parameters.json_schema;
+        let compiled_schema = JSONSchema::compile(&schema).expect("Invalid JSON schema");
+        let result = compiled_schema.validate(&args.parameters);
+        if let Err(errors) = result {
+            let validation_errors = errors
+                .map(|e| ValidationError {
+                    field: e.instance_path.to_string(),
+                    error_type: e.kind.to_string(),
+                    message: e.to_string(),
+                    expected: None,
+                    actual: Some(e.instance.to_string()),
+                })
+                .collect();
+            Err(validation_errors)
+        } else {
+            Ok(())
+        }
+    }
 
     /// Get tool performance metrics
     fn get_metrics(&self) -> ToolMetrics {

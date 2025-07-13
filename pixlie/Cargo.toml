@@ -19,6 +19,9 @@ gline-rs = "1.0"
 ts-rs = { version = "8.0", features = ["chrono"] }
 async-trait = "0.1"
 thiserror = "1.0"
+schemars = { version = "0.8", features = ["chrono"] }
+anyhow = "1.0"
+jsonschema = "0.17"
 
 [dev-dependencies]
 actix-rt = "2.9.0"

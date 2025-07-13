@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::path::Path;
 use ts_rs::TS;
+use schemars::JsonSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, TS, JsonSchema)]
 #[ts(export)]
 pub struct HnItem {
     pub id: i64,
@@ -31,6 +32,27 @@ pub struct HnItem {
     pub dead: bool,
     #[ts(type = "string")]
     pub created_at: DateTime<Utc>,
+}
+
+impl Default for HnItem {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            item_type: "story".to_string(),
+            by: Some("default_user".to_string()),
+            time: Utc::now(),
+            text: Some("default text".to_string()),
+            url: Some("http://default.url".to_string()),
+            score: Some(0),
+            title: Some("default title".to_string()),
+            parent: None,
+            kids: None,
+            descendants: None,
+            deleted: false,
+            dead: false,
+            created_at: Utc::now(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
