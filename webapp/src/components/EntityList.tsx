@@ -4,9 +4,9 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import Fuse from 'fuse.js'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
-import type { Entity } from '../types/Entity'
-import type { SearchEntitiesResponse } from '../types/SearchEntitiesResponse'
-import type { GetEntitiesResponse } from '../types/GetEntitiesResponse'
+import type { Entity } from '../types/database'
+import type { SearchEntitiesResponse } from '../types/api'
+import type { GetEntitiesResponse } from '../types/api'
 
 interface EntityListProps {
   searchQuery: string

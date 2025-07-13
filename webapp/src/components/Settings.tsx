@@ -3,9 +3,9 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Play, Square, FolderOpen, BarChart3, Download, Brain, Package } from "lucide-react";
-import type { ConfigResponse as Config } from "../types/ConfigResponse";
-import type { ModelInfo } from "../types/ModelInfo";
-import type { ExtractionStats } from "../types/ExtractionStats";
+import type { ConfigResponse as Config } from "../types/api";
+import type { ModelInfo } from "../types/extraction";
+import type { ExtractionStats } from "../types/database";
 
 export function Settings() {
   const [config, setConfig] = useState<Config | null>(null);

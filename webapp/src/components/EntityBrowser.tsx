@@ -5,7 +5,7 @@ import { EntitySearchBar } from './EntitySearchBar'
 import { EntityList } from './EntityList'
 import { EntityDetailModal } from './EntityDetailModal'
 import { RelationshipGraph } from './RelationshipGraph'
-import type { Entity } from '../types/Entity'
+import type { Entity } from '../types/database'
 
 interface EntityBrowserProps {
   mode?: 'list' | 'graph'

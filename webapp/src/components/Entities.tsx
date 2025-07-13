@@ -9,8 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import type { GetEntitiesResponse } from "../types/GetEntitiesResponse";
-import type { Entity } from "../types/Entity";
+import type { GetEntitiesResponse } from "../types/api";
+import type { Entity } from "../types/database";
 
 const API_BASE_URL = "http://localhost:8080/api";
 
