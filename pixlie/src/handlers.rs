@@ -3,6 +3,7 @@ use crate::database::{Database, DownloadStats, ExtractionStats};
 use crate::entity_extraction::{EntityExtractor, ModelInfo};
 use crate::hn_api::HnApiClient;
 use crate::llm::LLMProvider;
+use crate::tools::{ToolArguments, ToolCategory, ToolRegistry};
 use actix_web::{HttpResponse, Result, web};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -17,6 +18,7 @@ pub struct AppData {
     pub database: Option<Database>,
     pub hn_client: HnApiClient,
     pub entity_extractor: Mutex<EntityExtractor>,
+    pub tool_registry: Mutex<ToolRegistry>,
 }
 
 #[derive(Serialize, Deserialize, TS)]
@@ -261,9 +263,131 @@ pub async fn llm_query(_data: AppState, req: web::Json<LLMQueryRequest>) -> Resu
     }
 }
 
-pub async fn list_llm_tools() -> Result<HttpResponse> {
-    let tools: Vec<serde_json::Value> = vec![]; // TODO: Get tools from the tool registry
+pub async fn list_llm_tools(data: AppState) -> Result<HttpResponse> {
+    let tool_registry = data.tool_registry.lock().unwrap();
+    let tool_descriptors = tool_registry.get_all_descriptors();
+    Ok(HttpResponse::Ok().json(tool_descriptors))
+}
+
+// Tool-specific endpoint handlers
+
+#[derive(Deserialize)]
+pub struct ExecuteToolRequest {
+    pub parameters: serde_json::Value,
+    pub context: Option<serde_json::Value>,
+}
+
+pub async fn execute_tool(
+    data: AppState,
+    path: web::Path<String>,
+    req: web::Json<ExecuteToolRequest>,
+) -> Result<HttpResponse> {
+    let tool_name = path.into_inner();
+
+    let context = req
+        .context
+        .as_ref()
+        .and_then(|c| serde_json::from_value(c.clone()).ok());
+
+    let args = ToolArguments {
+        parameters: req.parameters.clone(),
+        context,
+    };
+
+    // Clone the tool to avoid holding the lock across await
+    let tool = {
+        let tool_registry = data.tool_registry.lock().unwrap();
+        tool_registry.get_tool_cloned(&tool_name)
+    };
+
+    let result = if let Some(tool) = tool {
+        Some(tool.execute(args).await)
+    } else {
+        None
+    };
+
+    // Update metrics after execution would happen here
+    // For now we skip this since it requires more complex state management
+
+    if let Some(tool_result) = result {
+        Ok(HttpResponse::Ok().json(tool_result))
+    } else {
+        Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "error": "Tool not found",
+            "tool_name": tool_name
+        })))
+    }
+}
+
+pub async fn get_tool_descriptor(data: AppState, path: web::Path<String>) -> Result<HttpResponse> {
+    let tool_name = path.into_inner();
+    let tool_registry = data.tool_registry.lock().unwrap();
+
+    if let Some(tool) = tool_registry.get_tool(&tool_name) {
+        let descriptor = tool.describe();
+        Ok(HttpResponse::Ok().json(descriptor))
+    } else {
+        Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "success": false,
+            "error": format!("Tool '{}' not found", tool_name)
+        })))
+    }
+}
+
+pub async fn get_tools_by_category(
+    data: AppState,
+    path: web::Path<String>,
+) -> Result<HttpResponse> {
+    let category_str = path.into_inner();
+    let tool_registry = data.tool_registry.lock().unwrap();
+
+    let category = match category_str.as_str() {
+        "data_query" => ToolCategory::DataQuery,
+        "entity_analysis" => ToolCategory::EntityAnalysis,
+        "relation_exploration" => ToolCategory::RelationExploration,
+        "analytics" => ToolCategory::Analytics,
+        _ => {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "success": false,
+                "error": format!("Invalid category: {}", category_str)
+            })));
+        }
+    };
+
+    let tools = tool_registry.get_tools_by_category(category);
     Ok(HttpResponse::Ok().json(tools))
+}
+
+pub async fn get_tool_schema(data: AppState) -> Result<HttpResponse> {
+    let tool_registry = data.tool_registry.lock().unwrap();
+    let descriptors = tool_registry.get_all_descriptors();
+
+    let schema = serde_json::json!({
+        "tools": descriptors,
+        "categories": [
+            "data_query",
+            "entity_analysis",
+            "relation_exploration",
+            "analytics"
+        ],
+        "version": "1.0.0"
+    });
+
+    Ok(HttpResponse::Ok().json(schema))
+}
+
+pub async fn get_tool_metrics(data: AppState, path: web::Path<String>) -> Result<HttpResponse> {
+    let tool_name = path.into_inner();
+    let tool_registry = data.tool_registry.lock().unwrap();
+
+    if let Some(metrics) = tool_registry.get_tool_metrics(&tool_name) {
+        Ok(HttpResponse::Ok().json(metrics))
+    } else {
+        Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "success": false,
+            "error": format!("Tool '{}' not found", tool_name)
+        })))
+    }
 }
 
 pub async fn get_llm_conversation() -> Result<HttpResponse> {
