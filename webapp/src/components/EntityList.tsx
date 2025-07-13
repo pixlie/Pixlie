@@ -54,7 +54,7 @@ export function EntityList({ searchQuery, entityType, onEntitySelect }: EntityLi
   // Query for search or all entities with optimized caching
   const { data, isLoading, error } = useQuery({
     queryKey: ['entities', searchQuery, entityType, page],
-    queryFn: () => {
+    queryFn: (): Promise<SearchEntitiesResponse | GetEntitiesResponse> => {
       if (searchQuery.trim()) {
         return searchEntities(searchQuery, entityType || undefined, page, 50) // Smaller batch for search
       } else {
@@ -69,10 +69,15 @@ export function EntityList({ searchQuery, entityType, onEntitySelect }: EntityLi
   // Accumulate entities for infinite scroll
   useEffect(() => {
     if (data) {
+      // Handle both SearchEntitiesResponse (EntityWithStats[]) and GetEntitiesResponse (Entity[])
+      const entities = data.entities.map(entity => 
+        'entity' in entity ? entity.entity : entity
+      ) as Entity[]
+      
       if (page === 1) {
-        setAllEntities(data.entities)
+        setAllEntities(entities)
       } else {
-        setAllEntities(prev => [...prev, ...data.entities])
+        setAllEntities(prev => [...prev, ...entities])
       }
     }
   }, [data, page])
@@ -116,8 +121,12 @@ export function EntityList({ searchQuery, entityType, onEntitySelect }: EntityLi
   })
 
   const handleLoadMore = () => {
-    if (data && page < data.total_pages) {
-      setPage(prev => prev + 1)
+    if (data) {
+      // Only GetEntitiesResponse has total_pages, SearchEntitiesResponse doesn't
+      const totalPages = 'total_pages' in data ? data.total_pages : Math.ceil(Number(data.total_count) / 50)
+      if (page < totalPages) {
+        setPage(prev => prev + 1)
+      }
     }
   }
 
@@ -168,7 +177,7 @@ export function EntityList({ searchQuery, entityType, onEntitySelect }: EntityLi
     <div className="space-y-4">
       {/* Results Info */}
       <div className="text-sm text-gray-600">
-        Showing {filteredEntities.length} of {data?.total_count || 0} entities
+        Showing {filteredEntities.length} of {data ? Number(data.total_count) : 0} entities
       </div>
 
       {/* Virtual List Container */}
@@ -225,7 +234,7 @@ export function EntityList({ searchQuery, entityType, onEntitySelect }: EntityLi
       </div>
 
       {/* Load More */}
-      {data && page < data.total_pages && (
+      {data && page < ('total_pages' in data ? data.total_pages : Math.ceil(Number(data.total_count) / 50)) && (
         <div className="text-center">
           <Button
             onClick={handleLoadMore}

@@ -126,7 +126,7 @@ export function RelationshipGraph({ searchQuery, entityType, onEntitySelect }: R
   // Fetch entities with performance optimizations
   const { data: entitiesData } = useQuery({
     queryKey: ['graph-entities', searchQuery, entityType],
-    queryFn: () => {
+    queryFn: (): Promise<SearchEntitiesResponse | GetEntitiesResponse> => {
       if (searchQuery.trim()) {
         return searchEntities(searchQuery, entityType || undefined)
       } else {
@@ -151,7 +151,10 @@ export function RelationshipGraph({ searchQuery, entityType, onEntitySelect }: R
       return { graphNodes: [], graphEdges: [], relationTypes: [] }
     }
 
-    const entities = entitiesData.entities
+    // Handle both SearchEntitiesResponse (EntityWithStats[]) and GetEntitiesResponse (Entity[])
+    const entities = entitiesData.entities.map(entity => 
+      'entity' in entity ? entity.entity : entity
+    ) as Entity[]
     const relations = relationsData.relations
 
     // Filter relations if type is selected
@@ -175,7 +178,7 @@ export function RelationshipGraph({ searchQuery, entityType, onEntitySelect }: R
     const centerX = 400
     const centerY = 300
     
-    const graphNodes: Node[] = entities.map((entity, index) => {
+    const graphNodes: Node[] = entities.map((entity: Entity, index: number) => {
       const angle = (2 * Math.PI * index) / entities.length
       const x = centerX + radius * Math.cos(angle)
       const y = centerY + radius * Math.sin(angle)
