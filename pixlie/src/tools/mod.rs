@@ -5,18 +5,22 @@
 pub mod data_query;
 pub mod entity_analysis;
 pub mod relation_exploration;
+pub mod types;
 
 #[cfg(test)]
 mod tests;
 
 use async_trait::async_trait;
+use schemars::{JsonSchema, schema_for};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Instant;
+use ts_rs::TS;
 
 /// Tool categories for organizing tools by functionality
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub enum ToolCategory {
     DataQuery,
     EntityAnalysis,
@@ -25,7 +29,8 @@ pub enum ToolCategory {
 }
 
 /// Parameter types for tool arguments
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub enum ParameterType {
     String,
     Integer,
@@ -37,7 +42,8 @@ pub enum ParameterType {
 }
 
 /// Validation rules for tool parameters
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ValidationRule {
     pub min_value: Option<f64>,
     pub max_value: Option<f64>,
@@ -48,34 +54,42 @@ pub struct ValidationRule {
 }
 
 /// Tool parameter definition
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct Parameter {
     pub name: String,
     pub param_type: ParameterType,
     pub description: String,
     pub required: bool,
+    #[ts(type = "unknown")]
     pub default_value: Option<Value>,
     pub validation: Option<ValidationRule>,
 }
 
 /// Tool parameter schema
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolParameters {
     pub parameters: Vec<Parameter>,
+    #[ts(type = "Record<string, unknown>")]
     pub json_schema: Value,
 }
 
 /// Tool usage example
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolExample {
     pub description: String,
+    #[ts(type = "Record<string, unknown>")]
     pub input: Value,
+    #[ts(type = "Record<string, unknown>")]
     pub expected_output: Option<Value>,
     pub use_case: String,
 }
 
 /// Tool constraints and limitations
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolConstraints {
     pub max_execution_time_ms: Option<u64>,
     pub max_result_size: Option<usize>,
@@ -84,7 +98,8 @@ pub struct ToolConstraints {
 }
 
 /// Comprehensive tool descriptor
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolDescriptor {
     pub name: String,
     pub description: String,
@@ -97,25 +112,31 @@ pub struct ToolDescriptor {
 }
 
 /// Tool execution arguments
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolArguments {
+    #[ts(type = "Record<string, unknown>")]
     pub parameters: Value,
     pub context: Option<QueryContext>,
 }
 
 /// Query context for tool execution
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct QueryContext {
     pub user_id: Option<String>,
     pub session_id: Option<String>,
     pub request_id: Option<String>,
+    #[ts(type = "Record<string, unknown>")]
     pub metadata: HashMap<String, Value>,
 }
 
 /// Tool execution result
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolResult {
     pub success: bool,
+    #[ts(type = "unknown")]
     pub data: Value,
     pub message: Option<String>,
     pub execution_time_ms: u64,
@@ -124,13 +145,26 @@ pub struct ToolResult {
 }
 
 /// Validation error for tool parameters
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ValidationError {
     pub field: String,
     pub error_type: String,
     pub message: String,
     pub expected: Option<String>,
     pub actual: Option<String>,
+}
+
+/// Tool validation trait for parameter validation
+pub trait ToolValidator {
+    /// Validate parameters using JSON schema
+    fn validate_parameters(&self, params: &Value) -> types::ValidationResult;
+
+    /// Get the JSON schema for parameters
+    fn get_parameter_schema(&self) -> &Value;
+
+    /// Get the JSON schema for responses
+    fn get_response_schema(&self) -> &Value;
 }
 
 /// Tool handler trait for executing tools
@@ -191,7 +225,8 @@ impl Tool {
 }
 
 /// Tool performance metrics
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, TS, JsonSchema)]
+#[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolMetrics {
     pub total_executions: u64,
     pub successful_executions: u64,
@@ -290,6 +325,12 @@ impl ToolRegistry {
     pub fn get_all_metrics(&self) -> &HashMap<String, ToolMetrics> {
         &self.metrics
     }
+}
+
+/// Generate JSON schema from a type that implements JsonSchema
+pub fn generate_json_schema<T: JsonSchema>() -> Value {
+    let schema = schema_for!(T);
+    serde_json::to_value(schema).unwrap_or(Value::Null)
 }
 
 /// Helper function to create JSON schema from parameters

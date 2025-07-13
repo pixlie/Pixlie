@@ -3,7 +3,10 @@ use crate::database::{Database, DownloadStats, ExtractionStats};
 use crate::entity_extraction::{EntityExtractor, ModelInfo};
 use crate::hn_api::HnApiClient;
 use crate::llm::LLMProvider;
-use crate::tools::{ToolArguments, ToolCategory, ToolRegistry};
+use crate::tools::{
+    ToolArguments, ToolCategory, ToolDescriptor, ToolRegistry, ToolValidator, ValidationError,
+    types,
+};
 use actix_web::{HttpResponse, Result, web};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -1458,4 +1461,176 @@ pub async fn get_entity_items(
     };
 
     Ok(HttpResponse::Ok().json(response))
+}
+
+// New tool validation and schema endpoints
+
+/// Get all available tools
+#[allow(dead_code)]
+pub async fn get_tools(data: AppState) -> Result<HttpResponse> {
+    let tool_registry = data.tool_registry.lock().unwrap();
+    let tools = tool_registry.get_all_descriptors();
+
+    let response = GetToolsResponse { tools };
+    Ok(HttpResponse::Ok().json(response))
+}
+
+/// Get JSON schema for a specific tool
+#[allow(dead_code)]
+pub async fn get_tool_schema_specific(
+    data: AppState,
+    path: web::Path<String>,
+) -> Result<HttpResponse> {
+    let tool_name = path.into_inner();
+    let tool_registry = data.tool_registry.lock().unwrap();
+
+    if let Some(tool) = tool_registry.get_tool(&tool_name) {
+        let descriptor = tool.describe();
+
+        let schema = types::ToolSchema {
+            name: descriptor.name.clone(),
+            parameter_schema: descriptor.parameters.json_schema,
+            response_schema: serde_json::json!({}), // TODO: Add response schema
+            examples: descriptor
+                .examples
+                .iter()
+                .map(|ex| types::ToolSchemaExample {
+                    name: ex.description.clone(),
+                    description: ex.use_case.clone(),
+                    parameters: ex.input.clone(),
+                    expected_response: ex.expected_output.clone().unwrap_or(serde_json::json!({})),
+                })
+                .collect(),
+        };
+
+        let response = GetToolSchemaResponse { schema };
+        Ok(HttpResponse::Ok().json(response))
+    } else {
+        Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "success": false,
+            "error": format!("Tool '{}' not found", tool_name)
+        })))
+    }
+}
+
+/// Validate tool parameters without executing
+#[allow(dead_code)]
+pub async fn validate_tool_params(
+    data: AppState,
+    req: web::Json<ValidateToolParamsRequest>,
+) -> Result<HttpResponse> {
+    let tool_registry = data.tool_registry.lock().unwrap();
+
+    if let Some(tool) = tool_registry.get_tool(&req.tool_name) {
+        // Use the tool's validation if it implements ToolValidator
+        let validation_result = match tool {
+            crate::tools::Tool::SearchItems(search_tool) => {
+                search_tool.validate_parameters(&req.parameters)
+            }
+            crate::tools::Tool::FilterItems(filter_tool) => {
+                filter_tool.validate_parameters(&req.parameters)
+            }
+            crate::tools::Tool::SearchEntities(search_entities_tool) => {
+                search_entities_tool.validate_parameters(&req.parameters)
+            }
+            crate::tools::Tool::ExploreRelations(explore_relations_tool) => {
+                explore_relations_tool.validate_parameters(&req.parameters)
+            }
+        };
+
+        let response = ValidateToolParamsResponse { validation_result };
+        Ok(HttpResponse::Ok().json(response))
+    } else {
+        let validation_result = types::ValidationResult {
+            is_valid: false,
+            errors: vec![ValidationError {
+                field: "tool_name".to_string(),
+                error_type: "not_found".to_string(),
+                message: format!("Tool '{}' not found", req.tool_name),
+                expected: Some("Valid tool name".to_string()),
+                actual: Some(req.tool_name.clone()),
+            }],
+            warnings: vec![],
+        };
+
+        let response = ValidateToolParamsResponse { validation_result };
+        Ok(HttpResponse::BadRequest().json(response))
+    }
+}
+
+/// Enhanced tool execution with better validation
+#[allow(dead_code)]
+pub async fn execute_tool_enhanced(
+    data: AppState,
+    req: web::Json<ExecuteToolRequestNew>,
+) -> Result<HttpResponse> {
+    // Clone the tool to avoid holding the lock across the await
+    let tool = {
+        let tool_registry = data.tool_registry.lock().unwrap();
+        tool_registry.get_tool_cloned(&req.tool_name)
+    };
+
+    let result = if let Some(tool) = tool {
+        Some(tool.execute(req.arguments.clone()).await)
+    } else {
+        None
+    };
+
+    if let Some(tool_result) = result {
+        let response = ExecuteToolResponse {
+            result: tool_result,
+        };
+        Ok(HttpResponse::Ok().json(response))
+    } else {
+        Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "success": false,
+            "error": format!("Tool '{}' not found", req.tool_name)
+        })))
+    }
+}
+
+// Tool request/response types (avoiding duplicates with existing ones)
+#[allow(dead_code)]
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct GetToolsResponse {
+    pub tools: Vec<ToolDescriptor>,
+}
+
+#[allow(dead_code)]
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct GetToolSchemaResponse {
+    pub schema: types::ToolSchema,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct ValidateToolParamsRequest {
+    pub tool_name: String,
+    #[ts(type = "Record<string, unknown>")]
+    pub parameters: serde_json::Value,
+}
+
+#[allow(dead_code)]
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct ValidateToolParamsResponse {
+    pub validation_result: types::ValidationResult,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct ExecuteToolRequestNew {
+    pub tool_name: String,
+    pub arguments: ToolArguments,
+}
+
+#[allow(dead_code)]
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct ExecuteToolResponse {
+    pub result: crate::tools::ToolResult,
 }

@@ -2,14 +2,18 @@
 
 use super::{
     Parameter, ParameterType, ToolArguments, ToolCategory, ToolConstraints, ToolDescriptor,
-    ToolHandler, ToolParameters, ToolResult, ValidationError,
+    ToolHandler, ToolParameters, ToolResult, ToolValidator, ValidationError, generate_json_schema,
+    types,
 };
 use async_trait::async_trait;
-use serde_json::json;
+use serde_json::{Value, json};
 
 /// Search entities by name, type, and confidence
 #[derive(Debug, Clone)]
-pub struct SearchEntitiesTool;
+pub struct SearchEntitiesTool {
+    parameter_schema: Value,
+    response_schema: Value,
+}
 
 impl Default for SearchEntitiesTool {
     fn default() -> Self {
@@ -19,33 +23,30 @@ impl Default for SearchEntitiesTool {
 
 impl SearchEntitiesTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            parameter_schema: generate_json_schema::<types::SearchEntitiesParams>(),
+            response_schema: generate_json_schema::<types::SearchEntitiesResponse>(),
+        }
     }
 
-    pub async fn execute(&self, args: ToolArguments) -> ToolResult {
+    pub async fn execute(&self, _args: ToolArguments) -> ToolResult {
         let start_time = std::time::Instant::now();
 
         // TODO: Implement actual entity search
-        let mock_results = json!({
-            "entities": [
-                {
-                    "id": 1,
-                    "entity_value": "OpenAI",
-                    "entity_type": "company",
-                    "confidence": 0.95,
-                    "mentions_count": 150
-                },
-                {
-                    "id": 2,
-                    "entity_value": "Sam Altman",
-                    "entity_type": "person",
-                    "confidence": 0.92,
-                    "mentions_count": 89
-                }
-            ],
-            "total_count": 2,
-            "query_applied": args.parameters
-        });
+        let mock_response = types::SearchEntitiesResponse {
+            entities: vec![], // Mock empty for now - would be populated from database
+            total_count: 2,
+            query_applied: types::SearchEntitiesParams {
+                query: None,
+                entity_type: None,
+                min_confidence: None,
+                min_mentions: None,
+                limit: 100,
+            },
+            query_time_ms: start_time.elapsed().as_millis() as u64,
+        };
+
+        let mock_results = serde_json::to_value(mock_response).unwrap_or(json!({}));
 
         ToolResult {
             success: true,
@@ -55,6 +56,37 @@ impl SearchEntitiesTool {
             errors: vec![],
             warnings: vec!["Entity search functionality is not yet fully implemented".to_string()],
         }
+    }
+}
+
+impl ToolValidator for SearchEntitiesTool {
+    fn validate_parameters(&self, params: &Value) -> types::ValidationResult {
+        match serde_json::from_value::<types::SearchEntitiesParams>(params.clone()) {
+            Ok(_) => types::ValidationResult {
+                is_valid: true,
+                errors: vec![],
+                warnings: vec![],
+            },
+            Err(e) => types::ValidationResult {
+                is_valid: false,
+                errors: vec![ValidationError {
+                    field: "root".to_string(),
+                    error_type: "deserialization_error".to_string(),
+                    message: format!("Failed to parse parameters: {e}"),
+                    expected: Some("Valid SearchEntitiesParams object".to_string()),
+                    actual: Some(params.to_string()),
+                }],
+                warnings: vec![],
+            },
+        }
+    }
+
+    fn get_parameter_schema(&self) -> &Value {
+        &self.parameter_schema
+    }
+
+    fn get_response_schema(&self) -> &Value {
+        &self.response_schema
     }
 }
 
