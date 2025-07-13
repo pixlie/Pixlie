@@ -1609,7 +1609,7 @@ pub struct GetToolSchemaResponse {
 #[ts(export)]
 pub struct ValidateToolParamsRequest {
     pub tool_name: String,
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub parameters: serde_json::Value,
 }
 

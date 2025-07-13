@@ -6,4 +6,4 @@
 /**
  * Tool schema example
  */
-export type ToolSchemaExample = { name: string, description: string, parameters: any, expected_response: any, };
+export type ToolSchemaExample = { name: string, description: string, parameters: Record<string, unknown>, expected_response: Record<string, unknown>, };

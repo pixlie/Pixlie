@@ -61,7 +61,7 @@ pub struct Parameter {
     pub param_type: ParameterType,
     pub description: String,
     pub required: bool,
-    #[ts(type = "any")]
+    #[ts(type = "unknown")]
     pub default_value: Option<Value>,
     pub validation: Option<ValidationRule>,
 }
@@ -71,7 +71,7 @@ pub struct Parameter {
 #[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolParameters {
     pub parameters: Vec<Parameter>,
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub json_schema: Value,
 }
 
@@ -80,9 +80,9 @@ pub struct ToolParameters {
 #[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolExample {
     pub description: String,
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub input: Value,
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub expected_output: Option<Value>,
     pub use_case: String,
 }
@@ -115,7 +115,7 @@ pub struct ToolDescriptor {
 #[derive(Debug, Clone, Serialize, Deserialize, TS, JsonSchema)]
 #[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolArguments {
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub parameters: Value,
     pub context: Option<QueryContext>,
 }
@@ -127,7 +127,7 @@ pub struct QueryContext {
     pub user_id: Option<String>,
     pub session_id: Option<String>,
     pub request_id: Option<String>,
-    #[ts(type = "Record<string, any>")]
+    #[ts(type = "Record<string, unknown>")]
     pub metadata: HashMap<String, Value>,
 }
 
@@ -136,7 +136,7 @@ pub struct QueryContext {
 #[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolResult {
     pub success: bool,
-    #[ts(type = "any")]
+    #[ts(type = "unknown")]
     pub data: Value,
     pub message: Option<String>,
     pub execution_time_ms: u64,

@@ -6,4 +6,4 @@
 /**
  * Query context for tool execution
  */
-export type QueryContext = { user_id: string | null, session_id: string | null, request_id: string | null, metadata: Record<string, any>, };
+export type QueryContext = { user_id: string | null, session_id: string | null, request_id: string | null, metadata: Record<string, unknown>, };

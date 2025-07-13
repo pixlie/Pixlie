@@ -6,4 +6,4 @@
 /**
  * Tool usage example
  */
-export type ToolExample = { description: string, input: any, expected_output: any, use_case: string, };
+export type ToolExample = { description: string, input: Record<string, unknown>, expected_output: Record<string, unknown>, use_case: string, };

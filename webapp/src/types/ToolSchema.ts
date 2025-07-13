@@ -7,4 +7,4 @@ import type { ToolSchemaExample } from "./ToolSchemaExample";
 /**
  * Tool schema information
  */
-export type ToolSchema = { name: string, parameter_schema: any, response_schema: any, examples: Array<ToolSchemaExample>, };
+export type ToolSchema = { name: string, parameter_schema: Record<string, unknown>, response_schema: Record<string, unknown>, examples: Array<ToolSchemaExample>, };

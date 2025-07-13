@@ -7,4 +7,4 @@ import type { QueryContext } from "./QueryContext";
 /**
  * Tool execution arguments
  */
-export type ToolArguments = { parameters: any, context: QueryContext | null, };
+export type ToolArguments = { parameters: Record<string, unknown>, context: QueryContext | null, };

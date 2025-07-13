@@ -6,4 +6,4 @@
 /**
  * Tool execution result
  */
-export type ToolResult = { success: boolean, data: any, message: string | null, execution_time_ms: bigint, errors: Array<string>, warnings: Array<string>, };
+export type ToolResult = { success: boolean, data: unknown, message: string | null, execution_time_ms: bigint, errors: Array<string>, warnings: Array<string>, };

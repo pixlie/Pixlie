@@ -7,4 +7,4 @@ import type { Parameter } from "./Parameter";
 /**
  * Tool parameter schema
  */
-export type ToolParameters = { parameters: Array<Parameter>, json_schema: any, };
+export type ToolParameters = { parameters: Array<Parameter>, json_schema: Record<string, unknown>, };

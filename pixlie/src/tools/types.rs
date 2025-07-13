@@ -241,9 +241,9 @@ pub struct ValidationWarning {
 #[ts(export, export_to = "webapp/src/types/tools/")]
 pub struct ToolSchema {
     pub name: String,
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub parameter_schema: serde_json::Value,
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub response_schema: serde_json::Value,
     pub examples: Vec<ToolSchemaExample>,
 }
@@ -254,9 +254,9 @@ pub struct ToolSchema {
 pub struct ToolSchemaExample {
     pub name: String,
     pub description: String,
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub parameters: serde_json::Value,
-    #[ts(type = "any")]
+    #[ts(type = "Record<string, unknown>")]
     pub expected_response: serde_json::Value,
 }
 

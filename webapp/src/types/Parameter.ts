@@ -8,4 +8,4 @@ import type { ValidationRule } from "./ValidationRule";
 /**
  * Tool parameter definition
  */
-export type Parameter = { name: string, param_type: ParameterType, description: string, required: boolean, default_value: any, validation: ValidationRule | null, };
+export type Parameter = { name: string, param_type: ParameterType, description: string, required: boolean, default_value: unknown, validation: ValidationRule | null, };
