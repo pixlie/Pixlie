@@ -22,6 +22,14 @@ impl LLMProvider for MockLLMProvider {
         Ok(vec![])
     }
 
+    async fn generate_response(
+        &self,
+        _prompt: &str,
+        _tools: &[super::super::conversation::ToolDescriptor],
+    ) -> Result<String, LLMError> {
+        Ok("Mock LLM response".to_string())
+    }
+
     fn get_model_info(&self) -> ModelInfo {
         ModelInfo {
             provider: "mock".to_string(),

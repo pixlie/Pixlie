@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::conversation::{Conversation, manager::ConversationManager};
 use crate::database::{Database, DownloadStats, ExtractionStats};
 use crate::entity_extraction::{EntityExtractor, ModelInfo};
 use crate::hn_api::HnApiClient;
@@ -22,6 +23,8 @@ pub struct AppData {
     pub hn_client: HnApiClient,
     pub entity_extractor: Mutex<EntityExtractor>,
     pub tool_registry: Mutex<ToolRegistry>,
+    #[allow(dead_code)]
+    pub conversation_manager: Option<Mutex<ConversationManager>>,
 }
 
 #[derive(Serialize, Deserialize, TS)]
@@ -1633,4 +1636,249 @@ pub struct ExecuteToolRequestNew {
 #[ts(export)]
 pub struct ExecuteToolResponse {
     pub result: crate::tools::ToolResult,
+}
+
+// Conversation API types and handlers
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+#[allow(dead_code)]
+pub struct StartConversationRequest {
+    pub query: String,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct StartConversationResponse {
+    pub conversation: Conversation,
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+#[allow(dead_code)]
+pub struct ContinueConversationRequest {
+    #[ts(type = "string | null")]
+    pub user_input: Option<String>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct ContinueConversationResponse {
+    pub step: crate::conversation::ConversationStep,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct GetConversationResponse {
+    pub conversation: Option<Conversation>,
+}
+
+#[derive(Serialize, TS)]
+#[ts(export)]
+pub struct ListConversationsResponse {
+    pub conversations: Vec<Conversation>,
+}
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+#[allow(dead_code)]
+pub struct ListConversationsRequest {
+    pub limit: Option<u32>,
+}
+
+/// Start a new conversation
+#[allow(dead_code)]
+#[allow(clippy::await_holding_lock)]
+pub async fn start_conversation(
+    data: AppState,
+    req: web::Json<StartConversationRequest>,
+) -> Result<HttpResponse> {
+    let conversation_manager = match &data.conversation_manager {
+        Some(manager) => manager,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Conversation manager not initialized"
+            })));
+        }
+    };
+
+    // TODO: Use async-aware mutex to avoid holding lock across await
+    let manager = conversation_manager.lock().unwrap();
+
+    match manager.start_conversation(&req.query).await {
+        Ok(conversation) => {
+            let response = StartConversationResponse { conversation };
+            Ok(HttpResponse::Ok().json(response))
+        }
+        Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            "success": false,
+            "error": format!("Failed to start conversation: {}", e)
+        }))),
+    }
+}
+
+/// Continue an existing conversation
+#[allow(dead_code)]
+#[allow(clippy::await_holding_lock)]
+pub async fn continue_conversation(
+    data: AppState,
+    path: web::Path<String>, // conversation_id as UUID string
+    req: web::Json<ContinueConversationRequest>,
+) -> Result<HttpResponse> {
+    let conversation_manager = match &data.conversation_manager {
+        Some(manager) => manager,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Conversation manager not initialized"
+            })));
+        }
+    };
+
+    let conversation_id_str = path.into_inner();
+    let conversation_id = match uuid::Uuid::parse_str(&conversation_id_str) {
+        Ok(id) => id,
+        Err(_) => {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "success": false,
+                "error": "Invalid conversation ID format"
+            })));
+        }
+    };
+
+    // TODO: Use async-aware mutex to avoid holding lock across await
+    let manager = conversation_manager.lock().unwrap();
+
+    match manager
+        .continue_conversation(conversation_id, req.user_input.as_deref())
+        .await
+    {
+        Ok(step) => {
+            let response = ContinueConversationResponse { step };
+            Ok(HttpResponse::Ok().json(response))
+        }
+        Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            "success": false,
+            "error": format!("Failed to continue conversation: {}", e)
+        }))),
+    }
+}
+
+/// Get conversation details
+#[allow(dead_code)]
+#[allow(clippy::await_holding_lock)]
+pub async fn get_conversation(
+    data: AppState,
+    path: web::Path<String>, // conversation_id as UUID string
+) -> Result<HttpResponse> {
+    let conversation_manager = match &data.conversation_manager {
+        Some(manager) => manager,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Conversation manager not initialized"
+            })));
+        }
+    };
+
+    let conversation_id_str = path.into_inner();
+    let conversation_id = match uuid::Uuid::parse_str(&conversation_id_str) {
+        Ok(id) => id,
+        Err(_) => {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "success": false,
+                "error": "Invalid conversation ID format"
+            })));
+        }
+    };
+
+    // TODO: Use async-aware mutex to avoid holding lock across await
+    let manager = conversation_manager.lock().unwrap();
+
+    match manager.get_conversation(conversation_id).await {
+        Ok(conversation) => {
+            let response = GetConversationResponse { conversation };
+            Ok(HttpResponse::Ok().json(response))
+        }
+        Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            "success": false,
+            "error": format!("Failed to get conversation: {}", e)
+        }))),
+    }
+}
+
+/// List conversations
+#[allow(dead_code)]
+#[allow(clippy::await_holding_lock)]
+pub async fn list_conversations(
+    data: AppState,
+    req: web::Query<ListConversationsRequest>,
+) -> Result<HttpResponse> {
+    let conversation_manager = match &data.conversation_manager {
+        Some(manager) => manager,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Conversation manager not initialized"
+            })));
+        }
+    };
+
+    // TODO: Use async-aware mutex to avoid holding lock across await
+    let manager = conversation_manager.lock().unwrap();
+
+    match manager.list_conversations(req.limit).await {
+        Ok(conversations) => {
+            let response = ListConversationsResponse { conversations };
+            Ok(HttpResponse::Ok().json(response))
+        }
+        Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            "success": false,
+            "error": format!("Failed to list conversations: {}", e)
+        }))),
+    }
+}
+
+/// Delete a conversation
+#[allow(dead_code)]
+#[allow(clippy::await_holding_lock)]
+pub async fn delete_conversation(
+    data: AppState,
+    path: web::Path<String>, // conversation_id as UUID string
+) -> Result<HttpResponse> {
+    let conversation_manager = match &data.conversation_manager {
+        Some(manager) => manager,
+        None => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "success": false,
+                "error": "Conversation manager not initialized"
+            })));
+        }
+    };
+
+    let conversation_id_str = path.into_inner();
+    let conversation_id = match uuid::Uuid::parse_str(&conversation_id_str) {
+        Ok(id) => id,
+        Err(_) => {
+            return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                "success": false,
+                "error": "Invalid conversation ID format"
+            })));
+        }
+    };
+
+    // TODO: Use async-aware mutex to avoid holding lock across await
+    let manager = conversation_manager.lock().unwrap();
+
+    match manager.delete_conversation(conversation_id).await {
+        Ok(()) => Ok(HttpResponse::Ok().json(serde_json::json!({
+            "success": true,
+            "message": "Conversation deleted successfully"
+        }))),
+        Err(e) => Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+            "success": false,
+            "error": format!("Failed to delete conversation: {}", e)
+        }))),
+    }
 }

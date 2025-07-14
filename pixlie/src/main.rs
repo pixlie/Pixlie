@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod conversation;
 mod database;
 mod entity_extraction;
 mod handlers;
@@ -113,6 +114,7 @@ async fn start_server(port: u16) -> std::io::Result<()> {
         hn_client,
         entity_extractor: Mutex::new(entity_extractor),
         tool_registry: Mutex::new(tool_registry),
+        conversation_manager: None, // TODO: Initialize conversation manager
     });
     let app_state = web::Data::new(app_data);
 

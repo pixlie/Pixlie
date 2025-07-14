@@ -74,5 +74,11 @@ pub trait LLMProvider: Send + Sync {
 
     async fn parse_response(&self, response: &str) -> Result<Vec<ToolCall>, LLMError>;
 
+    async fn generate_response(
+        &self,
+        prompt: &str,
+        tools: &[super::conversation::ToolDescriptor],
+    ) -> Result<String, LLMError>;
+
     fn get_model_info(&self) -> ModelInfo;
 }

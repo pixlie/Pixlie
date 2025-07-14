@@ -1,6 +1,7 @@
 // pixlie/src/lib.rs
 
 pub mod config;
+pub mod conversation;
 pub mod database;
 pub mod entity_extraction;
 pub mod handlers;
