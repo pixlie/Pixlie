@@ -115,6 +115,7 @@ pub struct EntityRelationReference {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Clone)]
 pub struct Database {
     pub pool: SqlitePool,
 }

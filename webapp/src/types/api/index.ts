@@ -23,3 +23,10 @@ export type { GetEntityReferencesResponse } from './GetEntityReferencesResponse'
 export type { GetEntityItemsRequest } from './GetEntityItemsRequest';
 export type { GetEntityItemsResponse } from './GetEntityItemsResponse';
 export type { EntityItemWithHighlights } from './EntityItemWithHighlights';
+export type { StartConversationRequest } from './StartConversationRequest';
+export type { StartConversationResponse } from './StartConversationResponse';
+export type { ContinueConversationRequest } from './ContinueConversationRequest';
+export type { ContinueConversationResponse } from './ContinueConversationResponse';
+export type { GetConversationResponse } from './GetConversationResponse';
+export type { ListConversationsRequest } from './ListConversationsRequest';
+export type { ListConversationsResponse } from './ListConversationsResponse';

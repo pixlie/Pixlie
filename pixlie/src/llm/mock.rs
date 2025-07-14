@@ -5,6 +5,18 @@ use async_trait::async_trait;
 
 pub struct MockLLMProvider;
 
+impl Default for MockLLMProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl MockLLMProvider {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
 #[async_trait]
 impl LLMProvider for MockLLMProvider {
     async fn send_query(

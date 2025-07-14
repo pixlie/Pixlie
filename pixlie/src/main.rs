@@ -16,11 +16,12 @@ use config::Config;
 use database::Database;
 use entity_extraction::EntityExtractor;
 use handlers::{
-    AppData, download_model, execute_tool, get_config, get_download_status, get_entities,
-    get_entity_detail, get_entity_items, get_entity_references, get_extraction_status, get_items,
-    get_llm_conversation, get_models, get_relations, get_tool_descriptor, get_tool_metrics,
-    get_tool_schema, get_tools_by_category, list_llm_tools, llm_query, search_entities,
-    set_data_folder, start_download, start_extraction, stop_download, stop_extraction,
+    AppData, continue_conversation, delete_conversation, download_model, execute_tool, get_config,
+    get_conversation, get_download_status, get_entities, get_entity_detail, get_entity_items,
+    get_entity_references, get_extraction_status, get_items, get_llm_conversation, get_models,
+    get_relations, get_tool_descriptor, get_tool_metrics, get_tool_schema, get_tools_by_category,
+    list_conversations, list_llm_tools, llm_query, search_entities, set_data_folder,
+    start_conversation, start_download, start_extraction, stop_download, stop_extraction,
 };
 use hn_api::HnApiClient;
 use std::sync::{Arc, Mutex};
@@ -108,13 +109,39 @@ async fn start_server(port: u16) -> std::io::Result<()> {
         tools::relation_exploration::ExploreRelationsTool::new(),
     ));
 
+    // Initialize conversation manager if database is available
+    let conversation_manager = if let Some(ref db) = database {
+        // Initialize conversation storage
+        let conversation_store = conversation::storage::SqliteConversationStore::new(db.clone());
+        if let Err(e) = conversation_store.init_tables().await {
+            eprintln!("Failed to initialize conversation tables: {e}");
+            None
+        } else {
+            // Initialize LLM provider (using mock for now)
+            let llm_provider = Box::new(llm::mock::MockLLMProvider::new());
+
+            // Create conversation manager
+            let manager = conversation::manager::ConversationManager::new(
+                llm_provider,
+                Arc::new(tool_registry.clone()),
+                Box::new(conversation_store),
+            );
+
+            println!("Conversation manager initialized");
+            Some(Mutex::new(manager))
+        }
+    } else {
+        println!("Conversation manager not initialized - database not available");
+        None
+    };
+
     let app_data = Arc::new(AppData {
         config: Mutex::new(config),
         database,
         hn_client,
         entity_extractor: Mutex::new(entity_extractor),
         tool_registry: Mutex::new(tool_registry),
-        conversation_manager: None, // TODO: Initialize conversation manager
+        conversation_manager,
     });
     let app_state = web::Data::new(app_data);
 
@@ -149,6 +176,15 @@ async fn start_server(port: u16) -> std::io::Result<()> {
                     .route("/llm/query", web::post().to(llm_query))
                     .route("/llm/tools", web::get().to(list_llm_tools))
                     .route("/llm/conversation", web::get().to(get_llm_conversation))
+                    // Conversation management endpoints
+                    .route("/conversations", web::post().to(start_conversation))
+                    .route("/conversations", web::get().to(list_conversations))
+                    .route("/conversations/{id}", web::get().to(get_conversation))
+                    .route(
+                        "/conversations/{id}/continue",
+                        web::post().to(continue_conversation),
+                    )
+                    .route("/conversations/{id}", web::delete().to(delete_conversation))
                     // Tool management endpoints
                     .route("/tools", web::get().to(list_llm_tools))
                     .route("/tools/schema", web::get().to(get_tool_schema))

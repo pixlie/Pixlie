@@ -1,16 +1,23 @@
 // pixlie/src/bin/export_types.rs
 
+use pixlie::conversation::{
+    Conversation, ConversationContext, ConversationResult, ConversationState, ConversationStep,
+    DataSummary, StepResult, StepStatus, StepType, ToolDescriptor as ConversationToolDescriptor,
+    ToolExecution, UserPreferences,
+};
 use pixlie::database::{
     DownloadStats, Entity, EntityReference, EntityRelation, ExtractionStats, HnItem,
 };
 use pixlie::entity_extraction::ModelInfo;
 use pixlie::handlers::{
-    ConfigResponse, DownloadModelRequest, DownloadStatusResponse, EntityDetailResponse,
-    EntityItemWithHighlights, ExtractionStatusResponse, GetEntitiesRequest, GetEntitiesResponse,
+    ConfigResponse, ContinueConversationRequest, ContinueConversationResponse,
+    DownloadModelRequest, DownloadStatusResponse, EntityDetailResponse, EntityItemWithHighlights,
+    ExtractionStatusResponse, GetConversationResponse, GetEntitiesRequest, GetEntitiesResponse,
     GetEntityItemsRequest, GetEntityItemsResponse, GetEntityReferencesRequest,
     GetEntityReferencesResponse, GetItemsRequest, GetItemsResponse, GetRelationsRequest,
-    GetRelationsResponse, ModelsResponse, SearchEntitiesRequest, SearchEntitiesResponse,
-    SetDataFolderRequest, StartDownloadRequest, StartExtractionRequest,
+    GetRelationsResponse, ListConversationsRequest, ListConversationsResponse, ModelsResponse,
+    SearchEntitiesRequest, SearchEntitiesResponse, SetDataFolderRequest, StartConversationRequest,
+    StartConversationResponse, StartDownloadRequest, StartExtractionRequest,
 };
 use pixlie::tools::types::{
     Entity as ToolEntity, EntityRelation as ToolEntityRelation, EntityWithStats,
@@ -98,6 +105,14 @@ fn main() -> std::io::Result<()> {
     export_type_to_subdir::<GetEntityItemsRequest>(base_dir, "api")?;
     export_type_to_subdir::<GetEntityItemsResponse>(base_dir, "api")?;
     export_type_to_subdir::<EntityItemWithHighlights>(base_dir, "api")?;
+    // Conversation API types
+    export_type_to_subdir::<StartConversationRequest>(base_dir, "api")?;
+    export_type_to_subdir::<StartConversationResponse>(base_dir, "api")?;
+    export_type_to_subdir::<ContinueConversationRequest>(base_dir, "api")?;
+    export_type_to_subdir::<ContinueConversationResponse>(base_dir, "api")?;
+    export_type_to_subdir::<GetConversationResponse>(base_dir, "api")?;
+    export_type_to_subdir::<ListConversationsRequest>(base_dir, "api")?;
+    export_type_to_subdir::<ListConversationsResponse>(base_dir, "api")?;
 
     let api_types = [
         "ConfigResponse",
@@ -122,6 +137,13 @@ fn main() -> std::io::Result<()> {
         "GetEntityItemsRequest",
         "GetEntityItemsResponse",
         "EntityItemWithHighlights",
+        "StartConversationRequest",
+        "StartConversationResponse",
+        "ContinueConversationRequest",
+        "ContinueConversationResponse",
+        "GetConversationResponse",
+        "ListConversationsRequest",
+        "ListConversationsResponse",
     ];
     create_index_file(base_dir, "api", &api_types)?;
 
@@ -150,6 +172,37 @@ fn main() -> std::io::Result<()> {
 
     let extraction_types = ["ModelInfo"];
     create_index_file(base_dir, "extraction", &extraction_types)?;
+
+    // === Conversation Types ===
+    println!("📁 Exporting conversation types...");
+    export_type_to_subdir::<Conversation>(base_dir, "conversation")?;
+    export_type_to_subdir::<ConversationState>(base_dir, "conversation")?;
+    export_type_to_subdir::<ConversationStep>(base_dir, "conversation")?;
+    export_type_to_subdir::<StepType>(base_dir, "conversation")?;
+    export_type_to_subdir::<StepStatus>(base_dir, "conversation")?;
+    export_type_to_subdir::<StepResult>(base_dir, "conversation")?;
+    export_type_to_subdir::<ToolExecution>(base_dir, "conversation")?;
+    export_type_to_subdir::<ConversationContext>(base_dir, "conversation")?;
+    export_type_to_subdir::<ConversationToolDescriptor>(base_dir, "conversation")?;
+    export_type_to_subdir::<DataSummary>(base_dir, "conversation")?;
+    export_type_to_subdir::<UserPreferences>(base_dir, "conversation")?;
+    export_type_to_subdir::<ConversationResult>(base_dir, "conversation")?;
+
+    let conversation_types = [
+        "Conversation",
+        "ConversationState",
+        "ConversationStep",
+        "StepType",
+        "StepStatus",
+        "StepResult",
+        "ToolExecution",
+        "ConversationContext",
+        "ToolDescriptor",
+        "DataSummary",
+        "UserPreferences",
+        "ConversationResult",
+    ];
+    create_index_file(base_dir, "conversation", &conversation_types)?;
 
     // === Tool Types ===
     println!("📁 Exporting tool types...");
@@ -235,6 +288,7 @@ fn main() -> std::io::Result<()> {
     println!("📁 API types: {}/api/", base_dir.display());
     println!("📁 Database types: {}/database/", base_dir.display());
     println!("📁 Extraction types: {}/extraction/", base_dir.display());
+    println!("📁 Conversation types: {}/conversation/", base_dir.display());
     println!("📁 Tool types: {}/tools/", base_dir.display());
     Ok(())
 }
@@ -252,6 +306,17 @@ fn fix_cross_directory_imports(base_dir: &Path) -> std::io::Result<()> {
         ("./ExtractionStats", "../database/ExtractionStats"),
         ("./HnItem", "../database/HnItem"),
         ("./ModelInfo", "../extraction/ModelInfo"),
+        ("./Conversation", "../conversation/Conversation"),
+        ("./ConversationStep", "../conversation/ConversationStep"),
+        ("./ConversationState", "../conversation/ConversationState"),
+        ("./StepType", "../conversation/StepType"),
+        ("./StepStatus", "../conversation/StepStatus"),
+        ("./StepResult", "../conversation/StepResult"),
+        ("./ToolExecution", "../conversation/ToolExecution"),
+        ("./ConversationContext", "../conversation/ConversationContext"),
+        ("./DataSummary", "../conversation/DataSummary"),
+        ("./UserPreferences", "../conversation/UserPreferences"),
+        ("./ConversationResult", "../conversation/ConversationResult"),
     ];
 
     println!("🔧 Fixing cross-directory imports in API types...");
