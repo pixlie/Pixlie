@@ -24,6 +24,7 @@ use pixlie::tools::{
     ToolDescriptor, ToolExample, ToolMetrics, ToolParameters, ToolResult, ValidationError,
     ValidationRule,
 };
+use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use ts_rs::TS;
@@ -224,6 +225,9 @@ fn main() -> std::io::Result<()> {
     ];
     create_index_file(base_dir, "tools", &tool_types)?;
 
+    // Fix cross-directory imports in API types
+    fix_cross_directory_imports(base_dir)?;
+
     println!(
         "\n✅ All TypeScript types exported successfully to organized subdirectories in '{}'.",
         base_dir.display()
@@ -232,5 +236,49 @@ fn main() -> std::io::Result<()> {
     println!("📁 Database types: {}/database/", base_dir.display());
     println!("📁 Extraction types: {}/extraction/", base_dir.display());
     println!("📁 Tool types: {}/tools/", base_dir.display());
+    Ok(())
+}
+
+// Helper function to fix cross-directory imports in API types
+fn fix_cross_directory_imports(base_dir: &Path) -> std::io::Result<()> {
+    let api_dir = base_dir.join("api");
+
+    // Define the import fixes needed for cross-directory references
+    let fixes = vec![
+        ("./DownloadStats", "../database/DownloadStats"),
+        ("./Entity", "../database/Entity"),
+        ("./EntityReference", "../database/EntityReference"),
+        ("./EntityRelation", "../database/EntityRelation"),
+        ("./ExtractionStats", "../database/ExtractionStats"),
+        ("./HnItem", "../database/HnItem"),
+        ("./ModelInfo", "../extraction/ModelInfo"),
+    ];
+
+    println!("🔧 Fixing cross-directory imports in API types...");
+
+    for entry in fs::read_dir(&api_dir)? {
+        let file_path = entry?.path();
+        if file_path.extension() == Some(OsStr::new("ts")) {
+            let content = fs::read_to_string(&file_path)?;
+            let mut fixed_content = content.clone();
+            let mut changes_made = false;
+
+            for (old_import, new_import) in &fixes {
+                let old_pattern = format!("\"{old_import}\"");
+                let new_pattern = format!("\"{new_import}\"");
+
+                if fixed_content.contains(&old_pattern) {
+                    fixed_content = fixed_content.replace(&old_pattern, &new_pattern);
+                    changes_made = true;
+                }
+            }
+
+            if changes_made {
+                fs::write(&file_path, fixed_content)?;
+                println!("✅ Fixed imports in {:?}", file_path.file_name().unwrap());
+            }
+        }
+    }
+
     Ok(())
 }
