@@ -288,7 +288,10 @@ fn main() -> std::io::Result<()> {
     println!("📁 API types: {}/api/", base_dir.display());
     println!("📁 Database types: {}/database/", base_dir.display());
     println!("📁 Extraction types: {}/extraction/", base_dir.display());
-    println!("📁 Conversation types: {}/conversation/", base_dir.display());
+    println!(
+        "📁 Conversation types: {}/conversation/",
+        base_dir.display()
+    );
     println!("📁 Tool types: {}/tools/", base_dir.display());
     Ok(())
 }
@@ -313,7 +316,10 @@ fn fix_cross_directory_imports(base_dir: &Path) -> std::io::Result<()> {
         ("./StepStatus", "../conversation/StepStatus"),
         ("./StepResult", "../conversation/StepResult"),
         ("./ToolExecution", "../conversation/ToolExecution"),
-        ("./ConversationContext", "../conversation/ConversationContext"),
+        (
+            "./ConversationContext",
+            "../conversation/ConversationContext",
+        ),
         ("./DataSummary", "../conversation/DataSummary"),
         ("./UserPreferences", "../conversation/UserPreferences"),
         ("./ConversationResult", "../conversation/ConversationResult"),
