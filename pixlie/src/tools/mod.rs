@@ -15,7 +15,6 @@ use schemars::{JsonSchema, schema_for};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::time::Instant;
 use ts_rs::TS;
 
 /// Tool categories for organizing tools by functionality
@@ -274,33 +273,32 @@ impl ToolRegistry {
     }
 
     /// Execute a tool by name
-    pub async fn execute_tool(&mut self, name: &str, args: ToolArguments) -> Option<ToolResult> {
+    pub async fn execute_tool(
+        &self,
+        name: &str,
+        params: &serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
         if let Some(tool) = self.tools.get(name).cloned() {
-            let start_time = Instant::now();
+            let args = ToolArguments {
+                parameters: params.clone(),
+                context: None,
+            };
+
             let result = tool.execute(args).await;
-            let execution_time = start_time.elapsed().as_millis() as u64;
 
-            // Update metrics
-            if let Some(metrics) = self.metrics.get_mut(name) {
-                metrics.total_executions += 1;
-                if result.success {
-                    metrics.successful_executions += 1;
-                } else {
-                    metrics.failed_executions += 1;
-                }
-
-                // Update average execution time
-                let total_time =
-                    metrics.average_execution_time_ms * (metrics.total_executions - 1) as f64;
-                metrics.average_execution_time_ms =
-                    (total_time + execution_time as f64) / metrics.total_executions as f64;
-                metrics.last_execution = Some(chrono::Utc::now().to_rfc3339());
+            if result.success {
+                Ok(result.data)
+            } else {
+                Err(result.errors.join("; "))
             }
-
-            Some(result)
         } else {
-            None
+            Err(format!("Tool '{name}' not found"))
         }
+    }
+
+    /// List available tools
+    pub async fn list_tools(&self) -> Result<Vec<ToolDescriptor>, String> {
+        Ok(self.get_all_descriptors())
     }
 
     /// Get tool metrics

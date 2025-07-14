@@ -20,6 +20,7 @@ async fn test_get_config() {
         hn_client: HnApiClient::new(),
         entity_extractor: Mutex::new(EntityExtractor::new()),
         tool_registry: Mutex::new(pixlie::tools::ToolRegistry::new()),
+        conversation_manager: None,
     });
     let app_state = web::Data::new(app_data);
 
@@ -46,6 +47,7 @@ async fn test_set_data_folder() {
         hn_client: HnApiClient::new(),
         entity_extractor: Mutex::new(EntityExtractor::new()),
         tool_registry: Mutex::new(pixlie::tools::ToolRegistry::new()),
+        conversation_manager: None,
     });
     let app_state = web::Data::new(app_data);
 
@@ -82,6 +84,7 @@ async fn test_get_models() {
         hn_client: HnApiClient::new(),
         entity_extractor: Mutex::new(EntityExtractor::new()),
         tool_registry: Mutex::new(pixlie::tools::ToolRegistry::new()),
+        conversation_manager: None,
     });
     let app_state = web::Data::new(app_data);
 
@@ -114,6 +117,7 @@ async fn test_download_model() {
         hn_client: HnApiClient::new(),
         entity_extractor: Mutex::new(EntityExtractor::new()),
         tool_registry: Mutex::new(pixlie::tools::ToolRegistry::new()),
+        conversation_manager: None,
     });
     let app_state = web::Data::new(app_data);
 
@@ -156,6 +160,7 @@ async fn test_get_download_status() {
         hn_client: HnApiClient::new(),
         entity_extractor: Mutex::new(EntityExtractor::new()),
         tool_registry: Mutex::new(pixlie::tools::ToolRegistry::new()),
+        conversation_manager: None,
     });
     let app_state = web::Data::new(app_data);
 
@@ -193,6 +198,7 @@ async fn test_start_download() {
         hn_client: HnApiClient::new(),
         entity_extractor: Mutex::new(EntityExtractor::new()),
         tool_registry: Mutex::new(pixlie::tools::ToolRegistry::new()),
+        conversation_manager: None,
     });
     let app_state = web::Data::new(app_data);
 

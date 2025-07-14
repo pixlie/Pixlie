@@ -138,6 +138,10 @@ impl Database {
         Ok(db)
     }
 
+    pub async fn get_connection(&self) -> Result<SqlitePool, sqlx::Error> {
+        Ok(self.pool.clone())
+    }
+
     async fn migrate(&self) -> Result<(), sqlx::Error> {
         // Create items table
         sqlx::query(
