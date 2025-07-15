@@ -1,0 +1,430 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+        default: 'v0.1.0'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION=${{ github.event.inputs.tag }}
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          if [[ "${{ steps.get_version.outputs.version }}" == "v0.1.0" ]]; then
+            CHANGELOG="Initial release of Pixlie - AI-powered data analysis for Hacker News discussions"
+          else
+            # Get previous tag
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+            if [[ -n "$PREV_TAG" ]]; then
+              CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+            else
+              CHANGELOG="Release ${{ steps.get_version.outputs.version }}"
+            fi
+          fi
+          
+          # Save changelog to file for multiline output
+          cat > changelog.md << 'EOF'
+          ## What's Changed
+          $CHANGELOG
+          
+          ## Installation
+          
+          ### Download Pre-built Binaries
+          Download the appropriate binary for your platform from the assets below:
+          
+          - **Linux x86_64**: `pixlie-linux-x86_64.tar.gz`
+          - **Linux ARM64**: `pixlie-linux-aarch64.tar.gz`
+          - **macOS Intel**: `pixlie-macos-x86_64.tar.gz`
+          - **macOS Apple Silicon**: `pixlie-macos-aarch64.tar.gz`
+          - **Windows**: `pixlie-windows-x86_64.zip`
+          
+          ### Package Installers
+          - **Linux**: `.deb` and `.rpm` packages available
+          - **macOS**: `.dmg` disk image for easy installation
+          - **Windows**: `.msi` installer package
+          
+          ### Build from Source
+          ```bash
+          cargo install --git https://github.com/pixlie/Pixlie --tag ${{ steps.get_version.outputs.version }}
+          ```
+          
+          ## Checksums
+          See `checksums.txt` for SHA256 hashes of all release assets.
+          EOF
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Pixlie ${{ steps.get_version.outputs.version }}
+          body_path: changelog.md
+          draft: false
+          prerelease: ${{ contains(steps.get_version.outputs.version, '-') }}
+
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: pixlie-linux-x86_64
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: pixlie-linux-aarch64
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            name: pixlie-macos-x86_64
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            name: pixlie-macos-aarch64
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: pixlie-windows-x86_64
+            archive: zip
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Configure cargo for cross-compilation (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          mkdir -p .cargo
+          cat > .cargo/config.toml << 'EOF'
+          [target.aarch64-unknown-linux-gnu]
+          linker = "aarch64-linux-gnu-gcc"
+          EOF
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.target }}-
+            ${{ runner.os }}-cargo-
+
+      - name: Build frontend
+        working-directory: webapp
+        run: |
+          npm install -g pnpm
+          pnpm install
+          pnpm build
+
+      - name: Build binary
+        working-directory: pixlie
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare binary (Unix)
+        if: matrix.os != 'windows-latest'
+        working-directory: pixlie
+        run: |
+          mkdir -p ../dist
+          cp target/${{ matrix.target }}/release/pixlie ../dist/
+          cp target/${{ matrix.target }}/release/export_types ../dist/
+          strip ../dist/pixlie || true
+          strip ../dist/export_types || true
+
+      - name: Prepare binary (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: pixlie
+        run: |
+          mkdir -p ../dist
+          cp target/${{ matrix.target }}/release/pixlie.exe ../dist/
+          cp target/${{ matrix.target }}/release/export_types.exe ../dist/
+
+      - name: Include webapp dist
+        run: |
+          cp -r webapp/dist ./dist/webapp
+
+      - name: Create README for binary
+        run: |
+          cat > dist/README.md << 'EOF'
+          # Pixlie ${{ needs.create-release.outputs.version }}
+          
+          AI-powered data analysis for Hacker News discussions using natural language queries.
+          
+          ## Quick Start
+          
+          1. Run the binary:
+             ```bash
+             ./pixlie --help
+             ```
+          
+          2. Start the server:
+             ```bash
+             ./pixlie --port 8080
+             ```
+          
+          3. Open your browser to `http://localhost:8080`
+          
+          ## Documentation
+          
+          For full documentation, visit: https://github.com/pixlie/Pixlie
+          
+          ## License
+          
+          MIT License - see LICENSE file for details.
+          EOF
+
+      - name: Copy license and docs
+        run: |
+          cp LICENSE dist/
+          cp README.md dist/PROJECT_README.md
+
+      - name: Create archive (Unix)
+        if: matrix.archive == 'tar.gz'
+        run: |
+          cd dist
+          tar -czf ../${{ matrix.name }}.tar.gz *
+          cd ..
+
+      - name: Create archive (Windows)
+        if: matrix.archive == 'zip'
+        run: |
+          cd dist
+          7z a ../${{ matrix.name }}.zip *
+          cd ..
+
+      - name: Generate checksum
+        run: |
+          if [[ "${{ matrix.archive }}" == "tar.gz" ]]; then
+            sha256sum ${{ matrix.name }}.tar.gz > ${{ matrix.name }}.tar.gz.sha256
+          else
+            sha256sum ${{ matrix.name }}.zip > ${{ matrix.name }}.zip.sha256
+          fi
+
+      - name: Upload Release Asset (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.name }}.tar.gz
+          asset_name: ${{ matrix.name }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Release Asset (zip)
+        if: matrix.archive == 'zip'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.name }}.zip
+          asset_name: ${{ matrix.name }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.name }}.${{ matrix.archive }}.sha256
+          asset_name: ${{ matrix.name }}.${{ matrix.archive }}.sha256
+          asset_content_type: text/plain
+
+  create-installers:
+    name: Create Platform Installers
+    runs-on: ubuntu-latest
+    needs: [create-release, build]
+    if: always() && needs.build.result == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev rpm build-essential
+
+      - name: Download Linux x86_64 artifacts
+        run: |
+          curl -L -o pixlie-linux-x86_64.tar.gz \
+            "https://github.com/${{ github.repository }}/releases/download/${{ needs.create-release.outputs.version }}/pixlie-linux-x86_64.tar.gz"
+          tar -xzf pixlie-linux-x86_64.tar.gz
+
+      - name: Create DEB package structure
+        run: |
+          mkdir -p pixlie-deb/DEBIAN
+          mkdir -p pixlie-deb/usr/bin
+          mkdir -p pixlie-deb/usr/share/doc/pixlie
+          mkdir -p pixlie-deb/usr/share/pixlie
+          
+          cp pixlie pixlie-deb/usr/bin/
+          cp export_types pixlie-deb/usr/bin/
+          cp -r webapp pixlie-deb/usr/share/pixlie/
+          cp LICENSE pixlie-deb/usr/share/doc/pixlie/
+          cp README.md pixlie-deb/usr/share/doc/pixlie/
+          
+          cat > pixlie-deb/DEBIAN/control << 'EOF'
+          Package: pixlie
+          Version: ${{ needs.create-release.outputs.version }}
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Maintainer: Pixlie Team <team@pixlie.ai>
+          Description: AI-powered data analysis for Hacker News discussions
+           Pixlie provides intelligent conversation-based analysis of Hacker News
+           discussions using natural language queries and entity recognition.
+          EOF
+
+      - name: Build DEB package
+        run: |
+          dpkg-deb --build pixlie-deb
+          mv pixlie-deb.deb pixlie_${{ needs.create-release.outputs.version }}_amd64.deb
+
+      - name: Create RPM package structure  
+        run: |
+          mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p rpmbuild/SOURCES/pixlie-${{ needs.create-release.outputs.version }}
+          
+          cp pixlie rpmbuild/SOURCES/pixlie-${{ needs.create-release.outputs.version }}/
+          cp export_types rpmbuild/SOURCES/pixlie-${{ needs.create-release.outputs.version }}/
+          cp -r webapp rpmbuild/SOURCES/pixlie-${{ needs.create-release.outputs.version }}/
+          cp LICENSE rpmbuild/SOURCES/pixlie-${{ needs.create-release.outputs.version }}/
+          cp README.md rpmbuild/SOURCES/pixlie-${{ needs.create-release.outputs.version }}/
+          
+          cd rpmbuild/SOURCES
+          tar -czf pixlie-${{ needs.create-release.outputs.version }}.tar.gz pixlie-${{ needs.create-release.outputs.version }}/
+          cd ../..
+
+      - name: Create RPM spec file
+        run: |
+          cat > rpmbuild/SPECS/pixlie.spec << 'EOF'
+          Name:           pixlie
+          Version:        ${{ needs.create-release.outputs.version }}
+          Release:        1%{?dist}
+          Summary:        AI-powered data analysis for Hacker News discussions
+          
+          License:        MIT
+          URL:            https://github.com/pixlie/Pixlie
+          Source0:        %{name}-%{version}.tar.gz
+          
+          BuildArch:      x86_64
+          
+          %description
+          Pixlie provides intelligent conversation-based analysis of Hacker News
+          discussions using natural language queries and entity recognition.
+          
+          %prep
+          %setup -q
+          
+          %install
+          mkdir -p %{buildroot}/%{_bindir}
+          mkdir -p %{buildroot}/%{_datadir}/%{name}
+          
+          install -m 755 pixlie %{buildroot}/%{_bindir}/
+          install -m 755 export_types %{buildroot}/%{_bindir}/
+          cp -r webapp %{buildroot}/%{_datadir}/%{name}/
+          
+          %files
+          %license LICENSE
+          %doc README.md
+          %{_bindir}/pixlie
+          %{_bindir}/export_types
+          %{_datadir}/%{name}/
+          
+          %changelog
+          * $(date +'%a %b %d %Y') Pixlie Team <team@pixlie.ai> - ${{ needs.create-release.outputs.version }}-1
+          - Release ${{ needs.create-release.outputs.version }}
+          EOF
+
+      - name: Build RPM package
+        run: |
+          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/pixlie.spec
+          cp rpmbuild/RPMS/x86_64/pixlie-*.rpm ./
+
+      - name: Generate checksums for packages
+        run: |
+          sha256sum *.deb *.rpm > installers-checksums.txt
+
+      - name: Upload DEB package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./pixlie_${{ needs.create-release.outputs.version }}_amd64.deb
+          asset_name: pixlie_${{ needs.create-release.outputs.version }}_amd64.deb
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload RPM package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./pixlie-${{ needs.create-release.outputs.version }}-1.x86_64.rpm
+          asset_name: pixlie-${{ needs.create-release.outputs.version }}-1.x86_64.rpm
+          asset_content_type: application/x-rpm
+
+      - name: Upload installer checksums
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./installers-checksums.txt
+          asset_name: installers-checksums.txt
+          asset_content_type: text/plain
