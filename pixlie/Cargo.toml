@@ -2,6 +2,15 @@
 name = "pixlie"
 version = "0.1.0"
 edition = "2024"
+description = "AI-powered data analysis for Hacker News discussions using natural language queries"
+license = "MIT"
+repository = "https://github.com/pixlie/Pixlie"
+homepage = "https://github.com/pixlie/Pixlie"
+documentation = "https://github.com/pixlie/Pixlie#readme"
+keywords = ["ai", "hacker-news", "data-analysis", "nlp", "conversation"]
+categories = ["command-line-utilities", "web-programming"]
+authors = ["Pixlie Team <team@pixlie.ai>"]
+readme = "../README.md"
 
 [dependencies]
 actix-web = "4.5"
@@ -30,3 +39,37 @@ tempfile = "3.10.1"
 [[bin]]
 name = "export_types"
 path = "src/bin/export_types.rs"
+
+# Package metadata for generating Linux packages
+[package.metadata.deb]
+maintainer = "Pixlie Team <team@pixlie.ai>"
+copyright = "2024, Pixlie Team"
+license-file = ["../LICENSE", "4"]
+extended-description = """
+Pixlie is an AI-powered data analysis platform that makes complex data exploration
+accessible to everyone. Using natural language conversations, you can discover
+insights in Hacker News discussions without writing SQL or complex queries.
+
+Features:
+- Conversational AI interface for natural language queries
+- Multi-step query resolution with tool orchestration
+- Entity recognition and relationship mapping
+- Trend analysis and intelligent conversation flows
+- Local-first architecture with high performance
+"""
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/pixlie", "usr/bin/", "755"],
+    ["target/release/export_types", "usr/bin/", "755"],
+    ["../LICENSE", "usr/share/doc/pixlie/", "644"],
+    ["../README.md", "usr/share/doc/pixlie/", "644"],
+]
+
+[package.metadata.rpm]
+package = "pixlie"
+license = "MIT"
+summary = "AI-powered data analysis for Hacker News discussions"
+buildarch = "x86_64"
+release = "1"
