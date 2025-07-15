@@ -1,0 +1,11 @@
+# Cargo audit configuration for known issues
+
+[advisories]
+# RSA timing attack vulnerability - Currently no fix available
+# This is a transitive dependency through sqlx-mysql which we don't use
+# but is included in the SQLx build. The vulnerability affects RSA operations
+# which are not used in our application (we only use SQLite)
+ignore = [
+    "RUSTSEC-2023-0071",  # RSA Marvin Attack - no fix available, not used in our app
+    "RUSTSEC-2024-0436",  # paste crate - unmaintained but functional
+]
