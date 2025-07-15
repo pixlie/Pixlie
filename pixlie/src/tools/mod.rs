@@ -222,6 +222,7 @@ pub struct ToolMetrics {
 }
 
 /// Tool registry for managing available tools
+#[derive(Clone)]
 pub struct ToolRegistry {
     tools: HashMap<String, Tool>,
     metrics: HashMap<String, ToolMetrics>,

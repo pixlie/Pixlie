@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::task;
 use ts_rs::TS;
+use uuid::Uuid;
 
 pub type AppState = web::Data<Arc<AppData>>;
 
@@ -1737,7 +1738,7 @@ pub async fn continue_conversation(
     };
 
     let conversation_id_str = path.into_inner();
-    let conversation_id = match uuid::Uuid::parse_str(&conversation_id_str) {
+    let conversation_id = match Uuid::parse_str(&conversation_id_str) {
         Ok(id) => id,
         Err(_) => {
             return Ok(HttpResponse::BadRequest().json(serde_json::json!({
@@ -1783,7 +1784,7 @@ pub async fn get_conversation(
     };
 
     let conversation_id_str = path.into_inner();
-    let conversation_id = match uuid::Uuid::parse_str(&conversation_id_str) {
+    let conversation_id = match Uuid::parse_str(&conversation_id_str) {
         Ok(id) => id,
         Err(_) => {
             return Ok(HttpResponse::BadRequest().json(serde_json::json!({
@@ -1858,7 +1859,7 @@ pub async fn delete_conversation(
     };
 
     let conversation_id_str = path.into_inner();
-    let conversation_id = match uuid::Uuid::parse_str(&conversation_id_str) {
+    let conversation_id = match Uuid::parse_str(&conversation_id_str) {
         Ok(id) => id,
         Err(_) => {
             return Ok(HttpResponse::BadRequest().json(serde_json::json!({
