@@ -73,7 +73,7 @@ AI-powered data analysis for Hacker News discussions using natural language quer
 
 2. Start the server:
    \`\`\`bash
-   ./pixlie --port 8080
+   ./pixlie server --port 8080
    \`\`\`
 
 3. Open your browser to \`http://localhost:8080\`

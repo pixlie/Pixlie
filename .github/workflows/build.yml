@@ -221,7 +221,7 @@ jobs:
         run: |
           cargo build --release
           # Run basic smoke tests
-          timeout 10s ./target/release/pixlie --port 18080 &
+          timeout 10s ./target/release/pixlie server --port 18080 &
           SERVER_PID=$!
           sleep 3
           
