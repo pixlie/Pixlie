@@ -1,0 +1,430 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Pixlie - AI-Powered Data Analysis for Everyone">
+	<!-- Hero Section -->
+	<section class="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white overflow-hidden">
+		<div class="absolute inset-0 bg-black opacity-50"></div>
+		<div class="relative z-10 text-center max-w-4xl mx-auto px-6">
+			<h1 class="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+				AI-Powered Data Analysis for Everyone
+			</h1>
+			<p class="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed">
+				Discover insights in Hacker News discussions using natural language queries and intelligent conversation flows
+			</p>
+			<div class="flex flex-col sm:flex-row gap-4 justify-center">
+				<a href="https://github.com/pixlie/Pixlie/releases" 
+				   class="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
+					<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+					</svg>
+					Try Pixlie
+				</a>
+				<a href="https://github.com/pixlie/Pixlie" 
+				   class="inline-flex items-center px-8 py-4 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
+					<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clip-rule="evenodd"></path>
+					</svg>
+					View on GitHub
+				</a>
+			</div>
+		</div>
+		<!-- Animated background elements -->
+		<div class="absolute inset-0 overflow-hidden">
+			<div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+			<div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
+		</div>
+	</section>
+
+	<!-- What is Pixlie Section -->
+	<section class="py-20 bg-gray-50">
+		<div class="max-w-6xl mx-auto px-6">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">What is Pixlie?</h2>
+				<p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+					Pixlie is an AI-powered data analysis platform that makes complex data exploration accessible to everyone. 
+					Using natural language conversations, you can discover insights in Hacker News discussions without writing SQL or complex queries.
+				</p>
+			</div>
+			<div class="grid md:grid-cols-2 gap-12 items-center">
+				<div>
+					<h3 class="text-2xl font-semibold text-gray-900 mb-4">Conversational AI Interface</h3>
+					<p class="text-gray-600 mb-6">
+						Simply ask questions like "Find AI startups that raised funding in 2024" and Pixlie's intelligent conversation system 
+						breaks down your query into executable steps, runs the analysis, and synthesizes clear, actionable insights.
+					</p>
+					<div class="space-y-3">
+						<div class="flex items-center">
+							<svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+							</svg>
+							<span class="text-gray-700">No SQL or complex queries needed</span>
+						</div>
+						<div class="flex items-center">
+							<svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+							</svg>
+							<span class="text-gray-700">Multi-step query resolution</span>
+						</div>
+						<div class="flex items-center">
+							<svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+							</svg>
+							<span class="text-gray-700">Intelligent conversation flows</span>
+						</div>
+					</div>
+				</div>
+				<div class="bg-white rounded-lg shadow-lg p-6">
+					<div class="text-sm text-gray-500 mb-2">Example Query</div>
+					<div class="bg-gray-100 rounded p-4 mb-4">
+						<p class="text-gray-800">"Find European AI startups that raised funding in 2024"</p>
+					</div>
+					<div class="text-sm text-gray-500 mb-2">AI Response</div>
+					<div class="bg-blue-50 rounded p-4">
+						<p class="text-gray-800 text-sm">I'll help you find European AI startups with 2024 funding. Let me break this down into steps:
+						<br>1. Search for AI-related entities in Europe
+						<br>2. Filter by funding events in 2024
+						<br>3. Analyze and present the results</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Key Features Section -->
+	<section class="py-20 bg-white">
+		<div class="max-w-6xl mx-auto px-6">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Key Features</h2>
+				<p class="text-xl text-gray-600 max-w-3xl mx-auto">
+					Powerful AI-driven tools that make data analysis accessible and insightful
+				</p>
+			</div>
+			<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+				<div class="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+					<div class="text-4xl mb-4">🤖</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Conversational AI</h3>
+					<p class="text-gray-600">Ask questions in natural language and get intelligent responses with step-by-step analysis</p>
+				</div>
+				<div class="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+					<div class="text-4xl mb-4">📊</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Smart Analysis</h3>
+					<p class="text-gray-600">Multi-step query resolution with tool orchestration and automated data processing</p>
+				</div>
+				<div class="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+					<div class="text-4xl mb-4">🔍</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Entity Recognition</h3>
+					<p class="text-gray-600">Automatic extraction of people, companies, technologies, and other entities from discussions</p>
+				</div>
+				<div class="bg-gradient-to-br from-orange-50 to-orange-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+					<div class="text-4xl mb-4">🕸️</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Relationship Mapping</h3>
+					<p class="text-gray-600">Discover connections and patterns between entities in discussions and conversations</p>
+				</div>
+				<div class="bg-gradient-to-br from-red-50 to-red-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+					<div class="text-4xl mb-4">📈</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Trend Analysis</h3>
+					<p class="text-gray-600">Track topics, sentiment, and emerging trends over time with intelligent analytics</p>
+				</div>
+				<div class="bg-gradient-to-br from-indigo-50 to-indigo-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+					<div class="text-4xl mb-4">🛠️</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Extensible Tools</h3>
+					<p class="text-gray-600">Modular architecture with custom analysis tools and extensible functionality</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- How It Works Section -->
+	<section class="py-20 bg-gray-50">
+		<div class="max-w-6xl mx-auto px-6">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">How It Works</h2>
+				<p class="text-xl text-gray-600 max-w-3xl mx-auto">
+					From question to insight in four intelligent steps
+				</p>
+			</div>
+			<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+				<div class="text-center">
+					<div class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Ask Questions</h3>
+					<p class="text-gray-600">"Find AI startups that raised funding in 2024"</p>
+				</div>
+				<div class="text-center">
+					<div class="w-16 h-16 bg-purple-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">AI Planning</h3>
+					<p class="text-gray-600">Pixlie breaks down your query into executable steps</p>
+				</div>
+				<div class="text-center">
+					<div class="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">3</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Tool Execution</h3>
+					<p class="text-gray-600">Runs searches, filters, and analysis automatically</p>
+				</div>
+				<div class="text-center">
+					<div class="w-16 h-16 bg-orange-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">4</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Smart Results</h3>
+					<p class="text-gray-600">Synthesizes findings into clear, actionable insights</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Data Sources Section -->
+	<section class="py-20 bg-white">
+		<div class="max-w-6xl mx-auto px-6">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Data Sources</h2>
+				<p class="text-xl text-gray-600 max-w-3xl mx-auto">
+					Currently analyzing Hacker News with more sources coming soon
+				</p>
+			</div>
+			<div class="grid md:grid-cols-2 gap-12">
+				<div>
+					<h3 class="text-2xl font-semibold text-gray-900 mb-6">Current</h3>
+					<div class="bg-green-50 border border-green-200 rounded-lg p-6">
+						<div class="flex items-center mb-4">
+							<div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-xl mr-4">Y</div>
+							<div>
+								<h4 class="font-semibold text-gray-900">Hacker News</h4>
+								<p class="text-gray-600 text-sm">Stories, comments, and user data</p>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div>
+					<h3 class="text-2xl font-semibold text-gray-900 mb-6">Coming Soon</h3>
+					<div class="space-y-4">
+						<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+							<div class="w-8 h-8 bg-orange-500 rounded mr-3"></div>
+							<span class="text-gray-700">Reddit discussions</span>
+						</div>
+						<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+							<div class="w-8 h-8 bg-gray-900 rounded mr-3"></div>
+							<span class="text-gray-700">GitHub repositories and issues</span>
+						</div>
+						<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+							<div class="w-8 h-8 bg-blue-500 rounded mr-3"></div>
+							<span class="text-gray-700">Twitter/X conversations</span>
+						</div>
+						<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+							<div class="w-8 h-8 bg-orange-600 rounded mr-3"></div>
+							<span class="text-gray-700">Product Hunt launches</span>
+						</div>
+						<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+							<div class="w-8 h-8 bg-green-500 rounded mr-3"></div>
+							<span class="text-gray-700">Tech news aggregators</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Use Cases Section -->
+	<section class="py-20 bg-gray-50">
+		<div class="max-w-6xl mx-auto px-6">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Use Cases</h2>
+				<p class="text-xl text-gray-600 max-w-3xl mx-auto">
+					Empowering different professionals with AI-driven insights
+				</p>
+			</div>
+			<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+				<div class="bg-white p-8 rounded-xl shadow-lg">
+					<div class="text-4xl mb-4">💼</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Investors</h3>
+					<p class="text-gray-600">Research emerging technologies and startups, track funding trends, and identify investment opportunities</p>
+				</div>
+				<div class="bg-white p-8 rounded-xl shadow-lg">
+					<div class="text-4xl mb-4">🔬</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Researchers</h3>
+					<p class="text-gray-600">Analyze tech trends, community sentiment, and emerging topics in technology discussions</p>
+				</div>
+				<div class="bg-white p-8 rounded-xl shadow-lg">
+					<div class="text-4xl mb-4">📰</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Journalists</h3>
+					<p class="text-gray-600">Discover breaking stories, track industry developments, and find newsworthy trends</p>
+				</div>
+				<div class="bg-white p-8 rounded-xl shadow-lg">
+					<div class="text-4xl mb-4">👨‍💻</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Developers</h3>
+					<p class="text-gray-600">Monitor technology adoption, community discussions, and emerging development trends</p>
+				</div>
+				<div class="bg-white p-8 rounded-xl shadow-lg">
+					<div class="text-4xl mb-4">🚀</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Entrepreneurs</h3>
+					<p class="text-gray-600">Identify market opportunities, competitive landscape, and validate business ideas</p>
+				</div>
+				<div class="bg-white p-8 rounded-xl shadow-lg">
+					<div class="text-4xl mb-4">📊</div>
+					<h3 class="text-xl font-semibold text-gray-900 mb-3">Analysts</h3>
+					<p class="text-gray-600">Generate insights, track market movements, and analyze industry patterns</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Technical Highlights Section -->
+	<section class="py-20 bg-white">
+		<div class="max-w-6xl mx-auto px-6">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Technical Highlights</h2>
+				<p class="text-xl text-gray-600 max-w-3xl mx-auto">
+					Built with modern technologies for performance, reliability, and scalability
+				</p>
+			</div>
+			<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+				<div class="text-center p-6">
+					<div class="w-16 h-16 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+						<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352z"/>
+						</svg>
+					</div>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">Rust Backend</h3>
+					<p class="text-gray-600">High-performance data processing and API</p>
+				</div>
+				<div class="text-center p-6">
+					<div class="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+						<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M14.23 12.004a2.236 2.236 0 0 1-2.235 2.236 2.236 2.236 0 0 1-2.236-2.236 2.236 2.236 0 0 1 2.235-2.236 2.236 2.236 0 0 1 2.236 2.236zm2.648-10.69c-1.346 0-3.107.96-4.888 2.622-1.78-1.653-3.542-2.602-4.887-2.602-.41 0-.783.093-1.106.278-1.375.793-1.683 3.264-.973 6.365C1.98 8.917 0 10.42 0 12.004c0 1.59 1.99 3.097 5.043 4.03-.704 3.113-.39 5.588.988 6.38.32.187.69.275 1.102.275 1.345 0 3.107-.96 4.888-2.624 1.78 1.654 3.542 2.603 4.887 2.603.41 0 .783-.09 1.106-.275 1.374-.792 1.683-3.263.973-6.365C22.02 15.096 24 13.59 24 12.004c0-1.59-1.99-3.097-5.043-4.032.704-3.11.39-5.587-.988-6.38-.318-.184-.688-.277-1.092-.278zm-.005 1.09v.006c.225 0 .406.044.558.127.666.382.955 1.835.73 3.704-.054.46-.142.945-.25 1.44-.96-.236-2.006-.417-3.107-.534-.66-.905-1.345-1.727-2.035-2.447 1.592-1.48 3.087-2.292 4.105-2.295zm-9.77.02c1.012 0 2.514.808 4.11 2.28-.686.72-1.37 1.537-2.02 2.442-1.107.117-2.154.298-3.113.538-.112-.49-.195-.964-.254-1.42-.23-1.868.054-3.32.714-3.707.19-.09.4-.127.563-.132zm4.882 3.05c.455.468.91.992 1.36 1.564-.44-.02-.89-.034-1.345-.034-.46 0-.915.01-1.36.034.44-.572.895-1.096 1.345-1.565zM12 8.1c.74 0 1.477.034 2.202.093.406.582.802 1.203 1.183 1.86.372.64.71 1.29 1.018 1.946-.308.655-.646 1.31-1.013 1.95-.38.66-.773 1.288-1.18 1.87-.728.063-1.466.098-2.21.098-.74 0-1.477-.035-2.202-.093-.406-.582-.802-1.204-1.183-1.86-.372-.64-.71-1.29-1.018-1.946.303-.657.646-1.313 1.013-1.954.38-.66.773-1.286 1.18-1.868.728-.064 1.466-.098 2.21-.098zm-3.635.254c-.24.377-.48.763-.704 1.16-.225.39-.435.782-.635 1.174-.265-.656-.49-1.31-.676-1.947.64-.15 1.315-.283 2.015-.386zm7.26 0c.695.103 1.365.23 2.006.387-.18.632-.405 1.282-.66 1.933-.2-.39-.41-.783-.64-1.174-.225-.392-.465-.774-.705-1.146zm3.063.675c.484.15.944.317 1.375.498 1.732.74 2.852 1.708 2.852 2.476-.005.768-1.125 1.74-2.857 2.475-.42.18-.88.342-1.355.493-.28-.958-.646-1.956-1.1-2.98.45-1.017.81-2.01 1.085-2.964zm-13.395.004c.278.96.645 1.957 1.1 2.98-.45 1.017-.812 2.01-1.086 2.964-.484-.15-.944-.318-1.37-.5-1.732-.737-2.852-1.706-2.852-2.474 0-.768 1.12-1.742 2.852-2.476.42-.18.88-.342 1.356-.494zm11.678 4.28c.265.657.49 1.312.676 1.948-.64.157-1.316.29-2.016.39.24-.375.48-.762.705-1.158.225-.39.435-.788.636-1.18zm-9.945.02c.2.392.41.783.64 1.175.23.39.465.772.705 1.143-.695-.102-1.365-.23-2.006-.386.18-.63.406-1.282.66-1.933zM17.92 16.32c.112.493.2.968.254 1.423.23 1.868-.054 3.32-.714 3.708-.147.09-.338.128-.563.128-1.012 0-2.514-.807-4.11-2.28.686-.72 1.37-1.536 2.02-2.44 1.107-.118 2.154-.3 3.113-.54zm-11.83.01c.96.234 2.006.415 3.107.532.66.905 1.345 1.727 2.035 2.446-1.595 1.483-3.092 2.295-4.11 2.295-.22-.005-.406-.05-.553-.132-.666-.38-.955-1.834-.73-3.703.054-.46.142-.944.25-1.438zm4.56.64c.44.02.89.034 1.345.034.46 0 .915-.01 1.36-.034-.44.572-.895 1.095-1.345 1.565-.455-.47-.91-.993-1.36-1.565z"/>
+						</svg>
+					</div>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">React Frontend</h3>
+					<p class="text-gray-600">Modern, responsive user interface</p>
+				</div>
+				<div class="text-center p-6">
+					<div class="w-16 h-16 bg-purple-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+						<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M12 0C5.374 0 0 5.373 0 12s5.374 12 12 12 12-5.373 12-12S18.626 0 12 0zm5.568 8.16c-.169-.225-.44-.337-.716-.337-.159 0-.32.04-.463.123-.669.39-1.518.89-2.289 1.388-.771.497-1.482 1.005-1.98 1.439-.249.217-.38.533-.38.864 0 .33.131.647.38.864.498.434 1.209.942 1.98 1.439.771.498 1.62.998 2.289 1.388.143.083.304.123.463.123.276 0 .547-.112.716-.337.225-.299.225-.708 0-1.007-.498-.662-1.518-1.439-2.289-1.937-.771-.497-1.482-1.005-1.98-1.439-.249-.217-.38-.533-.38-.864 0-.33.131-.647.38-.864.498-.434 1.209-.942 1.98-1.439.771-.498 1.791-1.275 2.289-1.937.225-.299.225-.708 0-1.007z"/>
+						</svg>
+					</div>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">LLM Integration</h3>
+					<p class="text-gray-600">Powered by state-of-the-art language models</p>
+				</div>
+				<div class="text-center p-6">
+					<div class="w-16 h-16 bg-green-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+						<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+						</svg>
+					</div>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">Local-First</h3>
+					<p class="text-gray-600">Run entirely on your own infrastructure</p>
+				</div>
+				<div class="text-center p-6">
+					<div class="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center mx-auto mb-4">
+						<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+						</svg>
+					</div>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">Open Source</h3>
+					<p class="text-gray-600">MIT licensed, community-driven development</p>
+				</div>
+				<div class="text-center p-6">
+					<div class="w-16 h-16 bg-indigo-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+						<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+						</svg>
+					</div>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">High Performance</h3>
+					<p class="text-gray-600">Optimized for speed and scalability</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Call to Action Section -->
+	<section class="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+		<div class="max-w-4xl mx-auto text-center px-6">
+			<h2 class="text-4xl md:text-5xl font-bold mb-6">Ready to Get Started?</h2>
+			<p class="text-xl mb-8 opacity-90">
+				Join the community and start exploring data with AI-powered conversations
+			</p>
+			<div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+				<a href="https://github.com/pixlie/Pixlie/releases" 
+				   class="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors duration-200 shadow-lg hover:shadow-xl">
+					<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+					</svg>
+					Download Pixlie
+				</a>
+				<a href="https://github.com/pixlie/Pixlie" 
+				   class="inline-flex items-center px-8 py-4 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-blue-600 transition-colors duration-200">
+					<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clip-rule="evenodd"></path>
+					</svg>
+					Star on GitHub
+				</a>
+			</div>
+			<div class="grid md:grid-cols-3 gap-8 text-center">
+				<div>
+					<div class="text-3xl font-bold mb-2">🌟</div>
+					<h3 class="font-semibold mb-2">Star the Project</h3>
+					<p class="text-sm opacity-80">Get notified about updates and releases</p>
+				</div>
+				<div>
+					<div class="text-3xl font-bold mb-2">📋</div>
+					<h3 class="font-semibold mb-2">Watch Releases</h3>
+					<p class="text-sm opacity-80">Subscribe to release notifications</p>
+				</div>
+				<div>
+					<div class="text-3xl font-bold mb-2">🤝</div>
+					<h3 class="font-semibold mb-2">Contribute</h3>
+					<p class="text-sm opacity-80">Join our community-driven development</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Footer -->
+	<footer class="bg-gray-900 text-white py-12">
+		<div class="max-w-6xl mx-auto px-6">
+			<div class="grid md:grid-cols-4 gap-8">
+				<div>
+					<h3 class="text-xl font-bold mb-4">Pixlie</h3>
+					<p class="text-gray-400 mb-4">AI-powered data analysis for everyone</p>
+					<div class="flex space-x-4">
+						<a href="https://github.com/pixlie/Pixlie" class="text-gray-400 hover:text-white transition-colors">
+							<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+								<path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+							</svg>
+						</a>
+					</div>
+				</div>
+				<div>
+					<h4 class="font-semibold mb-4">Product</h4>
+					<ul class="space-y-2 text-gray-400">
+						<li><a href="https://github.com/pixlie/Pixlie/releases" class="hover:text-white transition-colors">Download</a></li>
+						<li><a href="https://github.com/pixlie/Pixlie#readme" class="hover:text-white transition-colors">Documentation</a></li>
+						<li><a href="https://github.com/pixlie/Pixlie/releases" class="hover:text-white transition-colors">Releases</a></li>
+					</ul>
+				</div>
+				<div>
+					<h4 class="font-semibold mb-4">Community</h4>
+					<ul class="space-y-2 text-gray-400">
+						<li><a href="https://github.com/pixlie/Pixlie" class="hover:text-white transition-colors">GitHub</a></li>
+						<li><a href="https://github.com/pixlie/Pixlie/issues" class="hover:text-white transition-colors">Issues</a></li>
+						<li><a href="https://github.com/pixlie/Pixlie/discussions" class="hover:text-white transition-colors">Discussions</a></li>
+					</ul>
+				</div>
+				<div>
+					<h4 class="font-semibold mb-4">Resources</h4>
+					<ul class="space-y-2 text-gray-400">
+						<li><a href="https://github.com/pixlie/Pixlie#getting-started" class="hover:text-white transition-colors">Getting Started</a></li>
+						<li><a href="https://github.com/pixlie/Pixlie/blob/main/CONTRIBUTING.md" class="hover:text-white transition-colors">Contributing</a></li>
+						<li><a href="https://github.com/pixlie/Pixlie/blob/main/LICENSE" class="hover:text-white transition-colors">License</a></li>
+					</ul>
+				</div>
+			</div>
+			<div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+				<p>&copy; 2024 Pixlie. Open source under MIT License.</p>
+			</div>
+		</div>
+	</footer>
+</Layout>
+
+<style>
+	.animation-delay-2000 {
+		animation-delay: 2s;
+	}
+</style>
