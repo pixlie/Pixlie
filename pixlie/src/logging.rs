@@ -32,17 +32,12 @@ pub struct LogContext {
 }
 
 /// Log output format configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum LogFormat {
+    #[default]
     Text,
     Json,
     Compact,
-}
-
-impl Default for LogFormat {
-    fn default() -> Self {
-        LogFormat::Text
-    }
 }
 
 impl FromStr for LogFormat {
@@ -53,7 +48,7 @@ impl FromStr for LogFormat {
             "text" => Ok(LogFormat::Text),
             "json" => Ok(LogFormat::Json),
             "compact" => Ok(LogFormat::Compact),
-            _ => Err(format!("Unknown log format: {}", s)),
+            _ => Err(format!("Unknown log format: {s}")),
         }
     }
 }
@@ -253,11 +248,13 @@ impl LoggingManager {
     }
 
     /// Get current logging configuration
+    #[allow(dead_code)]
     pub fn get_config(&self) -> &LoggingConfig {
         &self.config
     }
 
     /// Update logging configuration (runtime configuration changes)
+    #[allow(dead_code)]
     pub fn update_config(&mut self, new_config: LoggingConfig) {
         self.config = new_config;
         // TODO: Implement runtime configuration updates
@@ -271,6 +268,7 @@ pub fn generate_request_id() -> String {
 }
 
 /// Create a log context with request tracking information
+#[allow(dead_code)]
 pub fn create_log_context(request_id: Option<String>) -> LogContext {
     LogContext {
         request_id,

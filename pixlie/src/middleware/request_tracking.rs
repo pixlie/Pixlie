@@ -116,11 +116,13 @@ where
 }
 
 /// Helper function to extract request ID from actix-web request
+#[allow(dead_code)]
 pub fn get_request_id(req: &ServiceRequest) -> Option<String> {
     req.extensions().get::<String>().cloned()
 }
 
 /// Helper function to extract request ID from actix-web HttpRequest
+#[allow(dead_code)]
 pub fn get_request_id_from_http_request(req: &actix_web::HttpRequest) -> Option<String> {
     req.extensions().get::<String>().cloned()
 }

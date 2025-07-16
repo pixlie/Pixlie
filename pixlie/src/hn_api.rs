@@ -2,9 +2,8 @@ use crate::database::{HnItem, HnUser};
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde::Deserialize;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::time::sleep;
-use tracing::{error, info, instrument, warn};
 
 const HN_API_BASE: &str = "https://hacker-news.firebaseio.com/v0";
 const REQUEST_DELAY_MS: u64 = 100; // Rate limiting: 10 requests per second
