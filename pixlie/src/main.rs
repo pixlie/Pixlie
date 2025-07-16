@@ -36,7 +36,10 @@ async fn main() -> std::io::Result<()> {
     let logging_manager = logging::LoggingManager::new(logging_config);
     if let Err(e) = logging_manager.init() {
         eprintln!("Failed to initialize logging: {}", e);
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()));
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+        ));
     }
 
     let cli = Cli::parse();

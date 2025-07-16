@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use tracing::{info, instrument, error};
+use tracing::{error, info, instrument};
 use ts_rs::TS;
 
 // Relation types for startup/investment domain
@@ -173,11 +173,13 @@ impl EntityExtractor {
         model_path: Option<String>,
     ) -> Result<(u64, u64), Box<dyn std::error::Error + Send + Sync>> {
         let start_time = Instant::now();
-        
-        info!("Starting entity extraction for session {} with {} items using model: {}",
-              session_id,
-              items.len(),
-              model_path.as_deref().unwrap_or("none"));
+
+        info!(
+            "Starting entity extraction for session {} with {} items using model: {}",
+            session_id,
+            items.len(),
+            model_path.as_deref().unwrap_or("none")
+        );
 
         if model_path.is_none() {
             error!("Entity extraction failed: model not loaded");
@@ -328,11 +330,13 @@ impl EntityExtractor {
         }
 
         let duration = start_time.elapsed();
-        info!("Entity extraction completed for session {} - extracted {} entities from {} items in {}ms",
-              session_id,
-              entities_extracted,
-              items_processed,
-              duration.as_millis());
+        info!(
+            "Entity extraction completed for session {} - extracted {} entities from {} items in {}ms",
+            session_id,
+            entities_extracted,
+            items_processed,
+            duration.as_millis()
+        );
 
         Ok((entities_extracted, items_processed))
     }

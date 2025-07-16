@@ -1,11 +1,11 @@
-use actix_web::{
-    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpMessage,
-};
-use std::future::{ready, Ready};
-use tracing::info;
-use futures::future::LocalBoxFuture;
 use crate::logging::generate_request_id;
+use actix_web::{
+    Error, HttpMessage,
+    dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
+};
+use futures::future::LocalBoxFuture;
+use std::future::{Ready, ready};
+use tracing::info;
 
 /// Request tracking middleware for generating and propagating request IDs
 pub struct RequestTracking;
@@ -58,8 +58,16 @@ where
         // Extract method and path for logging
         let method = req.method().to_string();
         let path = req.path().to_string();
-        let remote_addr = req.peer_addr().map(|addr| addr.to_string()).unwrap_or_else(|| "unknown".to_string());
-        let user_agent = req.headers().get("User-Agent").and_then(|h| h.to_str().ok()).unwrap_or("unknown").to_string();
+        let remote_addr = req
+            .peer_addr()
+            .map(|addr| addr.to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+        let user_agent = req
+            .headers()
+            .get("User-Agent")
+            .and_then(|h| h.to_str().ok())
+            .unwrap_or("unknown")
+            .to_string();
 
         // Create tracing span for this request
         let span = tracing::info_span!(
@@ -76,17 +84,13 @@ where
 
         Box::pin(async move {
             let _enter = span.enter();
-            
-            info!(
-                "Request started: {} {}",
-                method,
-                path,
-            );
+
+            info!("Request started: {} {}", method, path,);
 
             let result = fut.await;
 
             let duration = start_time.elapsed();
-            
+
             match &result {
                 Ok(response) => {
                     info!(
@@ -124,7 +128,7 @@ pub fn get_request_id_from_http_request(req: &actix_web::HttpRequest) -> Option<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{test, web, App, HttpResponse};
+    use actix_web::{App, HttpResponse, test, web};
 
     async fn test_handler(req: actix_web::HttpRequest) -> HttpResponse {
         let request_id = get_request_id_from_http_request(&req);
@@ -138,12 +142,13 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .wrap(RequestTracking)
-                .route("/test", web::get().to(test_handler))
-        ).await;
+                .route("/test", web::get().to(test_handler)),
+        )
+        .await;
 
         let req = test::TestRequest::get().uri("/test").to_request();
         let resp = test::call_service(&app, req).await;
-        
+
         assert!(resp.status().is_success());
     }
 
@@ -152,18 +157,19 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .wrap(RequestTracking)
-                .route("/test", web::get().to(test_handler))
-        ).await;
+                .route("/test", web::get().to(test_handler)),
+        )
+        .await;
 
         let custom_id = "custom-request-id-123";
         let req = test::TestRequest::get()
             .uri("/test")
             .insert_header(("X-Request-ID", custom_id))
             .to_request();
-        
+
         let resp = test::call_service(&app, req).await;
         assert!(resp.status().is_success());
-        
+
         let body: serde_json::Value = test::read_body_json(resp).await;
         assert_eq!(body["request_id"], custom_id);
     }

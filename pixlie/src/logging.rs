@@ -127,7 +127,9 @@ impl LoggingConfig {
 
         // Configure file output if specified
         if let Ok(log_file) = env::var("PIXLIE_LOG_FILE") {
-            config.outputs.push(LogOutput::File(PathBuf::from(log_file)));
+            config
+                .outputs
+                .push(LogOutput::File(PathBuf::from(log_file)));
             config.file_rotation = Some(FileRotationConfig::default());
         }
 
@@ -163,7 +165,7 @@ impl LoggingManager {
     pub fn init(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Parse level from string
         let level = Level::from_str(&self.config.level).unwrap_or(Level::INFO);
-        
+
         // Create environment filter
         let env_filter = EnvFilter::builder()
             .with_default_directive(level.into())
@@ -195,10 +197,7 @@ impl LoggingManager {
                     .with_current_span(true)
                     .with_span_list(true)
                     .boxed(),
-                LogFormat::Compact => fmt::layer()
-                    .compact()
-                    .with_target(false)
-                    .boxed(),
+                LogFormat::Compact => fmt::layer().compact().with_target(false).boxed(),
                 LogFormat::Text => fmt::layer()
                     .with_target(true)
                     .with_thread_ids(true)
@@ -211,10 +210,12 @@ impl LoggingManager {
                 if let Some(file_path) = self.get_file_path() {
                     let file_appender = tracing_appender::rolling::daily(
                         file_path.parent().unwrap_or(&PathBuf::from(".")),
-                        file_path.file_name().unwrap_or(std::ffi::OsStr::new("pixlie.log")),
+                        file_path
+                            .file_name()
+                            .unwrap_or(std::ffi::OsStr::new("pixlie.log")),
                     );
                     let (non_blocking_file, _guard) = tracing_appender::non_blocking(file_appender);
-                    
+
                     let file_layer = fmt::layer()
                         .json()
                         .with_writer(non_blocking_file)
@@ -327,7 +328,10 @@ mod tests {
     fn test_log_format_from_str() {
         assert!(matches!(LogFormat::from_str("json"), Ok(LogFormat::Json)));
         assert!(matches!(LogFormat::from_str("text"), Ok(LogFormat::Text)));
-        assert!(matches!(LogFormat::from_str("compact"), Ok(LogFormat::Compact)));
+        assert!(matches!(
+            LogFormat::from_str("compact"),
+            Ok(LogFormat::Compact)
+        ));
         assert!(LogFormat::from_str("invalid").is_err());
     }
 
@@ -345,7 +349,7 @@ mod tests {
     fn test_generate_request_id() {
         let id1 = generate_request_id();
         let id2 = generate_request_id();
-        
+
         assert_ne!(id1, id2);
         assert!(Uuid::from_str(&id1).is_ok());
         assert!(Uuid::from_str(&id2).is_ok());
@@ -355,7 +359,7 @@ mod tests {
     fn test_create_log_context() {
         let request_id = Some("test-request-id".to_string());
         let context = create_log_context(request_id.clone());
-        
+
         assert_eq!(context.request_id, request_id);
         assert!(context.task_id.is_none());
         assert!(context.user_id.is_none());
