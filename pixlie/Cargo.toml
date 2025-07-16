@@ -14,14 +14,17 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4", "serde"] }
 reqwest = { version = "0.12", features = ["json"] }
 clap = { version = "4.0", features = ["derive"] }
-env_logger = "0.10"
 gline-rs = "1.0"
 ts-rs = { version = "8.0", features = ["chrono", "uuid"] }
 async-trait = "0.1"
 thiserror = "1.0"
 schemars = { version = "0.8", features = ["chrono"] }
 futures = "0.3"
-log = "0.4"
+# Structured logging dependencies
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+tracing-actix-web = "0.7"
 
 [dev-dependencies]
 actix-rt = "2.9.0"

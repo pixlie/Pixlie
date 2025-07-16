@@ -110,7 +110,7 @@ impl ToolExecutor {
                     Ok(execution) => all_results.push(execution),
                     Err(e) => {
                         // Continue with other executions even if one fails
-                        log::warn!("Tool execution failed: {e}");
+                        tracing::warn!("Tool execution failed: {e}");
                         // Create a failed execution record
                         all_results.push(ToolExecution {
                             tool_name: "unknown".to_string(),
