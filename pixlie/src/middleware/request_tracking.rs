@@ -3,9 +3,7 @@ use actix_web::{
     Error, HttpMessage,
 };
 use std::future::{ready, Ready};
-use std::pin::Pin;
-use std::task::{Context, Poll};
-use tracing::{info, instrument, Span};
+use tracing::info;
 use futures::future::LocalBoxFuture;
 use crate::logging::generate_request_id;
 

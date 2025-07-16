@@ -334,7 +334,7 @@ mod tests {
     #[test]
     fn test_default_logging_config() {
         let config = LoggingConfig::default();
-        assert_eq!(config.level, Level::INFO);
+        assert_eq!(config.level, "INFO");
         assert!(matches!(config.format, LogFormat::Text));
         assert_eq!(config.outputs.len(), 1);
         assert!(!config.database_logging);

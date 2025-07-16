@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use tracing::{info, instrument, warn, error};
+use tracing::{info, instrument, error};
 use ts_rs::TS;
 
 // Relation types for startup/investment domain
