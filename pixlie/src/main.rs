@@ -6,10 +6,13 @@ mod entity_extraction;
 mod handlers;
 mod hn_api;
 mod llm;
+mod logging;
+mod middleware;
 mod tools;
 
-use actix_web::{App, HttpServer, middleware::Logger, web};
+use actix_web::{App, HttpServer, web};
 use clap::Parser;
+use tracing::info;
 
 use cli::{Cli, Commands};
 use config::Config;
@@ -28,15 +31,21 @@ use std::sync::{Arc, Mutex};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init();
+    // Initialize structured logging
+    let logging_config = logging::LoggingConfig::from_env();
+    let logging_manager = logging::LoggingManager::new(logging_config);
+    if let Err(e) = logging_manager.init() {
+        eprintln!("Failed to initialize logging: {e}");
+        return Err(std::io::Error::other(e.to_string()));
+    }
 
     let cli = Cli::parse();
 
     match cli.command {
         Some(Commands::Config) => {
             match Config::get_config_path() {
-                Ok(path) => println!("Config file path: {}", path.display()),
-                Err(e) => eprintln!("Error getting config path: {e}"),
+                Ok(path) => info!("Config file path: {}", path.display()),
+                Err(e) => tracing::error!("Error getting config path: {e}"),
             }
             return Ok(());
         }
@@ -50,7 +59,7 @@ async fn main() -> std::io::Result<()> {
 
 async fn start_server(port: u16) -> std::io::Result<()> {
     let config = Config::load().unwrap_or_else(|e| {
-        eprintln!("Failed to load config: {e}, using default");
+        tracing::warn!("Failed to load config: {e}, using default");
         Config::default()
     });
 
@@ -61,11 +70,11 @@ async fn start_server(port: u16) -> std::io::Result<()> {
         let db_path = data_folder.join("hackernews.db");
         match Database::new(&db_path).await {
             Ok(db) => {
-                println!("Database initialized at: {}", db_path.display());
+                info!("Database initialized at: {}", db_path.display());
                 Some(db)
             }
             Err(e) => {
-                eprintln!("Failed to initialize database: {e}");
+                tracing::error!("Failed to initialize database: {e}");
                 None
             }
         }
@@ -83,12 +92,12 @@ async fn start_server(port: u16) -> std::io::Result<()> {
         if let Some(downloaded_model) = models.iter().find(|m| m.is_downloaded) {
             if let Some(ref model_path) = downloaded_model.local_path {
                 if let Err(e) = entity_extractor.load_model(model_path) {
-                    eprintln!(
+                    tracing::error!(
                         "Failed to load existing model {}: {e}",
                         downloaded_model.name
                     );
                 } else {
-                    println!("Loaded existing model: {}", downloaded_model.name);
+                    info!("Loaded existing model: {}", downloaded_model.name);
                 }
             }
         }
@@ -114,7 +123,7 @@ async fn start_server(port: u16) -> std::io::Result<()> {
         // Initialize conversation storage
         let conversation_store = conversation::storage::SqliteConversationStore::new(db.clone());
         if let Err(e) = conversation_store.init_tables().await {
-            eprintln!("Failed to initialize conversation tables: {e}");
+            tracing::error!("Failed to initialize conversation tables: {e}");
             None
         } else {
             // Initialize LLM provider (using mock for now)
@@ -127,11 +136,11 @@ async fn start_server(port: u16) -> std::io::Result<()> {
                 Box::new(conversation_store),
             );
 
-            println!("Conversation manager initialized");
+            info!("Conversation manager initialized");
             Some(Mutex::new(manager))
         }
     } else {
-        println!("Conversation manager not initialized - database not available");
+        info!("Conversation manager not initialized - database not available");
         None
     };
 
@@ -145,12 +154,13 @@ async fn start_server(port: u16) -> std::io::Result<()> {
     });
     let app_state = web::Data::new(app_data);
 
-    println!("Starting server on http://localhost:{port}");
+    info!("Starting server on http://localhost:{port}");
 
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
-            .wrap(Logger::default())
+            .wrap(middleware::RequestTracking)
+            .wrap(tracing_actix_web::TracingLogger::default())
             .service(
                 web::scope("/api")
                     .route("/config", web::get().to(get_config))

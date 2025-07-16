@@ -2,6 +2,8 @@ use crate::database::{Database, HnItem};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
+use tracing::{error, info, instrument};
 use ts_rs::TS;
 
 // Relation types for startup/investment domain
@@ -162,6 +164,7 @@ impl EntityExtractor {
         *self.is_extracting.lock().unwrap()
     }
 
+    #[instrument(skip(items, database, is_extracting), fields(session_id, items_count = items.len()))]
     pub async fn extract_entities_from_items(
         items: Vec<HnItem>,
         database: &Database,
@@ -169,7 +172,17 @@ impl EntityExtractor {
         is_extracting: Arc<Mutex<bool>>,
         model_path: Option<String>,
     ) -> Result<(u64, u64), Box<dyn std::error::Error + Send + Sync>> {
+        let start_time = Instant::now();
+
+        info!(
+            "Starting entity extraction for session {} with {} items using model: {}",
+            session_id,
+            items.len(),
+            model_path.as_deref().unwrap_or("none")
+        );
+
         if model_path.is_none() {
+            error!("Entity extraction failed: model not loaded");
             return Err("Model not loaded".into());
         }
 
@@ -315,6 +328,15 @@ impl EntityExtractor {
             let mut extracting = is_extracting.lock().unwrap();
             *extracting = false;
         }
+
+        let duration = start_time.elapsed();
+        info!(
+            "Entity extraction completed for session {} - extracted {} entities from {} items in {}ms",
+            session_id,
+            entities_extracted,
+            items_processed,
+            duration.as_millis()
+        );
 
         Ok((entities_extracted, items_processed))
     }
