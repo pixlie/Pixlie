@@ -1,0 +1,86 @@
+name: Security Audit
+
+on:
+  schedule:
+    # Run security audit every day at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-audit-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-audit-
+
+      - name: Run cargo audit
+        working-directory: pixlie
+        run: cargo audit
+
+      - name: Check for vulnerabilities in dependencies
+        working-directory: pixlie
+        run: |
+          cargo audit --json > audit-results.json || true
+          if [ -s audit-results.json ]; then
+            echo "Security vulnerabilities found!"
+            cat audit-results.json
+            exit 1
+          fi
+
+  frontend-audit:
+    name: Frontend Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: webapp
+        run: |
+          npm install -g pnpm
+          pnpm install
+
+      - name: Run npm audit
+        working-directory: webapp
+        run: |
+          pnpm audit --audit-level moderate || true
+          echo "Frontend security audit completed"
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        with:
+          fail-on-severity: moderate
