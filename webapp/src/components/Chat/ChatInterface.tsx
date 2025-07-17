@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, BarChart3, Clock, Eye } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
@@ -7,7 +7,10 @@ import { cn } from '../../lib/utils';
 import { MessageList } from './MessageList';
 import { TypingIndicator } from './TypingIndicator';
 import { ToolExecutionDisplay } from './ToolExecutionDisplay';
-import type { Conversation, ConversationStep } from '../../types/conversation';
+import { ToolExecutionTimeline } from '../LLM/ToolExecutionTimeline';
+import { ToolExecutionModal } from '../LLM/ToolExecutionModal';
+import { ToolMetricsDisplay } from '../LLM/ToolMetricsDisplay';
+import type { Conversation, ConversationStep, ToolExecution } from '../../types/conversation';
 
 interface ChatInterfaceProps {
   conversationId?: string;
@@ -31,6 +34,8 @@ export function ChatInterface({ conversationId, className }: ChatInterfaceProps)
   const [isTyping, setIsTyping] = useState(false);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [toolExecution, setToolExecution] = useState<ConversationStep | null>(null);
+  const [viewMode, setViewMode] = useState<'chat' | 'timeline' | 'metrics'>('chat');
+  const [selectedTool, setSelectedTool] = useState<{ tool: ToolExecution; step: ConversationStep } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -238,40 +243,125 @@ export function ChatInterface({ conversationId, className }: ChatInterfaceProps)
     }
   };
 
+  const handleStepClick = (step: ConversationStep) => {
+    // Could open a step detail modal or navigate to detailed view
+    console.log('Step clicked:', step);
+  };
+
+  const handleToolClick = (tool: ToolExecution, step: ConversationStep) => {
+    setSelectedTool({ tool, step });
+  };
+
+  const handleCloseToolModal = () => {
+    setSelectedTool(null);
+  };
+
+  const getConversationSteps = () => {
+    return currentConversation?.steps || [];
+  };
+
   return (
     <Card className={cn('flex flex-col h-full', className)}>
       <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <MessageList messages={messages} />
-          {isTyping && <TypingIndicator />}
-          {toolExecution && <ToolExecutionDisplay step={toolExecution} />}
-          <div ref={messagesEndRef} />
-        </div>
-        
-        <div className="border-t p-4">
-          <div className="flex gap-2">
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask about entities, relations, or HN discussions..."
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
-              size="sm"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
+        {/* Header with view mode toggles */}
+        <div className="border-b p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Chat Interface</h2>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'chat' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('chat')}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Chat
+              </Button>
+              <Button
+                variant={viewMode === 'timeline' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('timeline')}
+                disabled={!currentConversation || getConversationSteps().length === 0}
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Timeline
+              </Button>
+              <Button
+                variant={viewMode === 'metrics' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('metrics')}
+                disabled={!currentConversation || getConversationSteps().length === 0}
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Metrics
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Content based on view mode */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {viewMode === 'chat' && (
+            <>
+              <MessageList messages={messages} />
+              {isTyping && <TypingIndicator />}
+              {toolExecution && <ToolExecutionDisplay step={toolExecution} />}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+
+          {viewMode === 'timeline' && (
+            <ToolExecutionTimeline
+              steps={getConversationSteps()}
+              onStepClick={handleStepClick}
+              onToolClick={handleToolClick}
+              showMetrics={true}
+            />
+          )}
+
+          {viewMode === 'metrics' && (
+            <ToolMetricsDisplay
+              steps={getConversationSteps()}
+            />
+          )}
+        </div>
+        
+        {/* Input area - only show in chat mode */}
+        {viewMode === 'chat' && (
+          <div className="border-t p-4">
+            <div className="flex gap-2">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask about entities, relations, or HN discussions..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isLoading}
+                size="sm"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Tool execution modal */}
+      {selectedTool && (
+        <ToolExecutionModal
+          tool={selectedTool.tool}
+          step={selectedTool.step}
+          isOpen={!!selectedTool}
+          onClose={handleCloseToolModal}
+        />
+      )}
     </Card>
   );
 }
