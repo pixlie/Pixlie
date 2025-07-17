@@ -6,6 +6,7 @@ import { HnItems } from './components/HnItems'
 import { EntitiesPage } from './pages/EntitiesPage'
 import { EntityGraphPage } from './pages/EntityGraphPage'
 import { EntityDetailPage } from './pages/EntityDetailPage'
+import { ChatPage } from './pages/ChatPage'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/entities" element={<EntitiesPage />} />
           <Route path="/entities/graph" element={<EntityGraphPage />} />
           <Route path="/entities/:id" element={<EntityDetailPage />} />
+          <Route path="/chat" element={<ChatPage />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
         <Outlet /> {/* This is where nested routes would render if App was a layout route */}

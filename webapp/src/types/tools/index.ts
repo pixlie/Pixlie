@@ -22,7 +22,6 @@ export * from './SearchItemsFilters';
 export * from './FilterItemsParams';
 export * from './FilterItemsResponse';
 export * from './SearchEntitiesParams';
-export * from './SearchEntitiesResponse';
 export * from './EntityWithStats';
 export * from './ExploreRelationsParams';
 export * from './ExploreRelationsResponse';
