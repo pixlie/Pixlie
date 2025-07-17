@@ -16,7 +16,9 @@
       "Bash(git add:*)",
       "Bash(gh issue list:*)",
       "Bash(gh issue create:*)",
-      "Bash(pnpm exec tsc:*)"
+      "Bash(pnpm exec tsc:*)",
+      "Bash(gh label:*)",
+      "Bash(gh issue edit:*)"
     ],
     "deny": []
   }

@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, LayoutDashboard, Download, BarChart3, FileText } from "lucide-react"; // Renamed Settings to SettingsIcon
+import { Settings as SettingsIcon, LayoutDashboard, Download, BarChart3, FileText, MessageCircle } from "lucide-react"; // Renamed Settings to SettingsIcon
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils"; // For conditional classes
 
@@ -39,6 +39,9 @@ export function Navigation() {
           </li>
           <li>
             <NavLink to="/entities" icon={FileText}>Entities</NavLink>
+          </li>
+          <li>
+            <NavLink to="/chat" icon={MessageCircle}>Chat</NavLink>
           </li>
           <li>
             {/* These are not part of the issue, so they won't navigate for now */}
