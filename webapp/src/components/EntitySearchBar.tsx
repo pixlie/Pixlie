@@ -2,12 +2,16 @@ import { useState, useCallback, useMemo } from 'react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
+import { Sparkles, Search } from 'lucide-react'
+import { QueryBuilder } from './QueryBuilder/QueryBuilder'
 
 interface EntitySearchBarProps {
   query: string
   entityType: string
   onQueryChange: (query: string) => void
   onEntityTypeChange: (type: string) => void
+  enableQueryBuilder?: boolean
+  onQueryBuilderSubmit?: (query: string, metadata?: { template?: string; parameters?: Record<string, unknown> }) => void
 }
 
 const ENTITY_TYPES = [
@@ -26,8 +30,11 @@ export function EntitySearchBar({
   entityType,
   onQueryChange,
   onEntityTypeChange,
+  enableQueryBuilder = false,
+  onQueryBuilderSubmit,
 }: EntitySearchBarProps) {
   const [localQuery, setLocalQuery] = useState(query)
+  const [showQueryBuilder, setShowQueryBuilder] = useState(false)
 
   const handleSearch = useCallback(() => {
     onQueryChange(localQuery)
@@ -52,74 +59,100 @@ export function EntitySearchBar({
   }, [entityType])
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-          {/* Search Input */}
-          <div className="flex-1 relative">
-            <Input
-              type="text"
-              placeholder="Search entities..."
-              value={localQuery}
-              onChange={(e) => setLocalQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="pr-10"
-            />
-            {localQuery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearSearch}
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <Input
+                type="text"
+                placeholder="Search entities..."
+                value={localQuery}
+                onChange={(e) => setLocalQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="pr-10"
+              />
+              {localQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearSearch}
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                >
+                  ×
+                </Button>
+              )}
+            </div>
+
+            {/* Entity Type Filter */}
+            <div className="relative min-w-0 sm:min-w-[150px]">
+              <select
+                value={entityType}
+                onChange={(e) => onEntityTypeChange(e.target.value)}
+                className="w-full appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                ×
+                {ENTITY_TYPES.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Search Button */}
+            <Button onClick={handleSearch} disabled={!localQuery.trim()} className="w-full sm:w-auto">
+              <Search className="w-4 h-4 mr-2" />
+              Search
+            </Button>
+
+            {/* Query Builder Toggle */}
+            {enableQueryBuilder && (
+              <Button
+                variant={showQueryBuilder ? "default" : "outline"}
+                onClick={() => setShowQueryBuilder(!showQueryBuilder)}
+                className="w-full sm:w-auto"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                {showQueryBuilder ? 'Hide' : 'LLM'} Query Builder
               </Button>
             )}
           </div>
 
-          {/* Entity Type Filter */}
-          <div className="relative min-w-0 sm:min-w-[150px]">
-            <select
-              value={entityType}
-              onChange={(e) => onEntityTypeChange(e.target.value)}
-              className="w-full appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {ENTITY_TYPES.map(type => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+          {/* Search Info */}
+          {(query || entityType) && (
+            <div className="mt-3 text-sm text-gray-600">
+              {query && (
+                <span>
+                  Searching for: <strong>{query}</strong>
+                </span>
+              )}
+              {query && entityType && <span> • </span>}
+              {entityType && (
+                <span>
+                  Type: <strong>{selectedTypeLabel}</strong>
+                </span>
+              )}
             </div>
-          </div>
+          )}
+        </CardContent>
+      </Card>
 
-          {/* Search Button */}
-          <Button onClick={handleSearch} disabled={!localQuery.trim()} className="w-full sm:w-auto">
-            Search
-          </Button>
-        </div>
-
-        {/* Search Info */}
-        {(query || entityType) && (
-          <div className="mt-3 text-sm text-gray-600">
-            {query && (
-              <span>
-                Searching for: <strong>{query}</strong>
-              </span>
-            )}
-            {query && entityType && <span> • </span>}
-            {entityType && (
-              <span>
-                Type: <strong>{selectedTypeLabel}</strong>
-              </span>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {/* Query Builder */}
+      {enableQueryBuilder && showQueryBuilder && (
+        <QueryBuilder 
+          onSubmit={onQueryBuilderSubmit}
+          onSave={(query, name) => {
+            console.log('Query saved:', { query, name });
+            // Could integrate with backend to save user queries
+          }}
+        />
+      )}
+    </div>
   )
 }
