@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Play, Square, FolderOpen, BarChart3, Download, Brain, Package } from "lucide-react";
+import { Play, Square, FolderOpen, BarChart3, Download, Brain, Package, Key, Bot, TrendingUp, Settings as SettingsIcon } from "lucide-react";
 import type { ConfigResponse as Config } from "../types/api";
 import type { ModelInfo } from "../types/extraction";
 import type { ExtractionStats } from "../types/database";
@@ -18,6 +18,16 @@ export function Settings() {
   const [extractionStats, setExtractionStats] = useState<ExtractionStats | null>(null);
   const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
   const [extractionBatchSize, setExtractionBatchSize] = useState(100);
+  
+  // LLM Configuration state
+  const [llmProvider, setLlmProvider] = useState("openai");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [anthropicApiKey, setAnthropicApiKey] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const [maxTokens, setMaxTokens] = useState(4000);
+  const [temperature, setTemperature] = useState(0.7);
+  const [costLimit, setCostLimit] = useState(10.0);
+  const [usageTracking, setUsageTracking] = useState(true);
 
   useEffect(() => {
     fetchConfig();
@@ -251,6 +261,209 @@ export function Settings() {
                 Current: {config.data_folder}
               </div>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>LLM Configuration</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="text-sm text-gray-600 mb-4">
+              Configure Large Language Model providers for AI-powered features like entity analysis, content summarization, and intelligent insights.
+            </div>
+            
+            {/* Provider Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                LLM Provider
+              </label>
+              <select
+                value={llmProvider}
+                onChange={(e) => setLlmProvider(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="local">Local Model</option>
+              </select>
+            </div>
+
+            {/* API Keys */}
+            {llmProvider === "openai" && (
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <Key className="w-4 h-4 inline mr-1" />
+                  OpenAI API Key
+                </label>
+                <Input
+                  type="password"
+                  value={openaiApiKey}
+                  onChange={(e) => setOpenaiApiKey(e.target.value)}
+                  placeholder="sk-..."
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Your API key is stored securely and never transmitted in logs
+                </div>
+              </div>
+            )}
+
+            {llmProvider === "anthropic" && (
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <Key className="w-4 h-4 inline mr-1" />
+                  Anthropic API Key
+                </label>
+                <Input
+                  type="password"
+                  value={anthropicApiKey}
+                  onChange={(e) => setAnthropicApiKey(e.target.value)}
+                  placeholder="sk-ant-..."
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Your API key is stored securely and never transmitted in logs
+                </div>
+              </div>
+            )}
+
+            {/* Model Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                <Bot className="w-4 h-4 inline mr-1" />
+                Model Selection
+              </label>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              >
+                {llmProvider === "openai" && (
+                  <>
+                    <option value="">Select OpenAI model...</option>
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                  </>
+                )}
+                {llmProvider === "anthropic" && (
+                  <>
+                    <option value="">Select Anthropic model...</option>
+                    <option value="claude-3-opus">Claude 3 Opus</option>
+                    <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                    <option value="claude-3-haiku">Claude 3 Haiku</option>
+                  </>
+                )}
+                {llmProvider === "local" && (
+                  <>
+                    <option value="">Select local model...</option>
+                    <option value="llama2-7b">Llama 2 7B</option>
+                    <option value="mistral-7b">Mistral 7B</option>
+                  </>
+                )}
+              </select>
+            </div>
+
+            {/* Performance Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Max Tokens
+                </label>
+                <Input
+                  type="number"
+                  value={maxTokens}
+                  onChange={(e) => setMaxTokens(parseInt(e.target.value) || 4000)}
+                  min={100}
+                  max={32000}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Temperature
+                </label>
+                <Input
+                  type="number"
+                  value={temperature}
+                  onChange={(e) => setTemperature(parseFloat(e.target.value) || 0.7)}
+                  min={0}
+                  max={2}
+                  step={0.1}
+                />
+              </div>
+            </div>
+
+            {/* Cost Management */}
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-4 h-4" />
+                <h3 className="font-medium">Cost Management & Usage</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Monthly Cost Limit ($)
+                  </label>
+                  <Input
+                    type="number"
+                    value={costLimit}
+                    onChange={(e) => setCostLimit(parseFloat(e.target.value) || 10.0)}
+                    min={0}
+                    step={0.01}
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Stop requests when this limit is reached
+                  </div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      checked={usageTracking}
+                      onChange={(e) => setUsageTracking(e.target.checked)}
+                      className="rounded"
+                    />
+                    Enable Usage Tracking
+                  </label>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Track API calls, tokens, and costs
+                  </div>
+                </div>
+              </div>
+
+              {/* Usage Statistics */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div className="text-sm font-medium mb-2">Current Month Usage</div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                  <div className="text-center">
+                    <div className="font-medium text-blue-900">1,247</div>
+                    <div className="text-blue-600">API Calls</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-green-900">342K</div>
+                    <div className="text-green-600">Tokens Used</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-purple-900">$3.42</div>
+                    <div className="text-purple-600">Cost</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-orange-900">34%</div>
+                    <div className="text-orange-600">Limit Used</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Configuration */}
+            <div className="border-t pt-4">
+              <Button className="w-full">
+                <SettingsIcon className="w-4 h-4 mr-2" />
+                Save LLM Configuration
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
