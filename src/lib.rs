@@ -3,6 +3,12 @@
 //! A Rust-based CLI application that leverages Large Language Models (LLMs) 
 //! to perform intelligent data analysis on SQLite databases.
 
+pub mod error;
+pub mod logging;
+
+pub use error::{PixlieError, ErrorContext, ErrorContextExt, ErrorSeverity, Result};
+pub use logging::{LoggingConfig, init_logging, log_error, log_performance_metric};
+
 /// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 

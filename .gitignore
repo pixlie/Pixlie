@@ -1,7 +1,6 @@
 .env
-
+.claude/settings.local.json
 
 
 # Added by cargo
-
 /target
