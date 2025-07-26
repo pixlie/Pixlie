@@ -1,357 +1,248 @@
-# LLM-Enabled CLI Data Analysis Tool - Technical Design
+# Pixlie - LLM-Enabled TUI Data Analysis Tool
 
 ## Overview
 
-A Rust-based CLI application that leverages Large Language Models (LLMs) to perform intelligent data analysis on SQLite databases. The system uses a tool-based architecture where the LLM can interact with various tools (SQL execution, user interaction) to iteratively analyze data and answer complex questions.
+A Rust-based Terminal User Interface (TUI) application that leverages Large Language Models (LLMs) to perform intelligent data analysis on SQLite databases. Similar to Claude Code, Pixlie provides an interactive chat interface where users can manage multiple analysis objectives simultaneously, maintain conversation history, and collaborate with AI to explore their data.
+
+## Key Features
+
+- **Interactive TUI**: Modern terminal interface with keyboard shortcuts and intuitive navigation
+- **Multiple Concurrent Objectives**: Run and manage several data analysis tasks at the same time
+- **Persistent Chat History**: Full conversation history with context preservation across sessions
+- **Real-time Collaboration**: Chat-based interaction with AI for iterative data exploration
+- **Tool-based Architecture**: Extensible system with SQL execution, schema inspection, and user interaction tools
+- **Multi-LLM Support**: Works with OpenAI, Anthropic, and local models
 
 ## Architecture
 
+### TUI Components
+
+#### 1. Main Interface Layout
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Pixlie Data Analyzer v0.2.0                    [Ctrl+Q to quit] │
+├─────────────────────────────────────────────────────────────────┤
+│ Active Objectives (3)        │ Chat History                     │
+│ ┌─────────────────────────┐   │ ┌─────────────────────────────┐ │
+│ │ 📊 Sales Analysis       │   │ │ User: What are top products?│ │
+│ │ 🔍 Customer Insights    │   │ │ AI: Let me analyze...       │ │
+│ │ 📈 Revenue Trends       │   │ │ User: Include Q4 data too   │ │
+│ └─────────────────────────┘   │ │ AI: Sure, querying...       │ │
+│                               │ └─────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────────┤
+│ > Tell me about customer retention rates by segment_            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 2. Navigation and Controls
+- **Tab**: Switch between objectives, chat, and input areas
+- **Ctrl+N**: Create new objective
+- **Ctrl+D**: Delete current objective
+- **Ctrl+H**: Toggle chat history visibility
+- **Ctrl+S**: Save session and history
+- **Ctrl+L**: Load previous session
+- **Ctrl+Q**: Quit application
+
+#### 3. Session Management
+- **Workspace Persistence**: Automatically saves objectives and chat history
+- **Context Switching**: Seamlessly switch between different analysis contexts
+- **History Search**: Full-text search through conversation history
+- **Export Options**: Save conversations and results to files
+
 ### Core Components
 
-#### 1. CLI Interface
-- **Entry Point**: Main CLI application built with `clap` crate
-- **Arguments**:
-  - `--database <path>`: Path to SQLite database
-  - `--objective <text>`: Analysis objective/question
-  - `--model <name>`: LLM model selection (optional)
-  - `--max-iterations <n>`: Maximum query iterations (default: 10)
+#### 1. TUI Framework
+- **Library**: Built with `ratatui` for modern terminal interfaces
+- **Event Handling**: Async input processing with crossterm
+- **Layout System**: Responsive design that adapts to terminal size
+- **State Management**: Centralized application state with message passing
 
-#### 2. Tool System
+#### 2. Session Management
+- **Objective Tracking**: Multiple concurrent analysis objectives
+- **Chat History**: Persistent conversation storage with SQLite
+- **Context Preservation**: Maintain analysis state across restarts
+- **Workspace Isolation**: Separate contexts for different projects
+
+#### 3. Tool System (Unchanged)
 - **Tool Trait**: Generic interface for all tools
 - **Tool Registry**: Dynamic registration and discovery of tools
 - **Tool Execution**: Sandboxed execution with result serialization
 
-#### 3. LLM Integration
-- **Provider Abstraction**: Support for multiple LLM providers (OpenAI, Anthropic, local models)
-- **JSON Schema Generation**: Auto-generate tool schemas for LLM function calling
-- **Response Parsing**: Structured JSON response handling
+#### 4. Enhanced LLM Integration
+- **Streaming Responses**: Real-time response rendering in chat
+- **Context Awareness**: Multi-objective context management
+- **Provider Abstraction**: Support for multiple LLM providers
+- **Rate Limiting**: Intelligent request throttling and queuing
 
-#### 4. Type System
-- **TypeScript Generation**: Using `ts-rs` crate for tool interface definitions
-- **Schema Management**: Automated type generation and validation
-- **Tool Documentation**: Auto-generated documentation from Rust types
+## Usage
 
-## Tool Architecture
+### Starting Pixlie
+```bash
+# Launch TUI with database
+./pixlie --database ./sales.db
 
-### Base Tool Interface
+# Launch with specific workspace
+./pixlie --workspace ./analysis-workspace/
 
-```rust
-#[async_trait]
-pub trait Tool: Send + Sync {
-    fn name(&self) -> &'static str;
-    fn description(&self) -> &'static str;
-    fn parameters_schema(&self) -> serde_json::Value;
-    async fn execute(&self, params: serde_json::Value) -> Result<ToolResult, ToolError>;
-}
+# Launch and load previous session
+./pixlie --database ./sales.db --load-session
 ```
 
-### Built-in Tools
+### TUI Interaction Flow
 
-#### 1. SQLite Tool
-- **Purpose**: Execute SQL queries against the target database
-- **Capabilities**:
-  - Schema introspection
-  - Query execution with results
-  - Error handling and validation
-  - Query performance metrics
+#### 1. Creating Objectives
+1. Press `Ctrl+N` to create new objective
+2. Enter objective description (e.g., "Analyze customer churn patterns")
+3. Objective appears in the active objectives panel
+4. Switch between objectives using `Tab` or arrow keys
 
-```rust
-#[derive(Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct SqlQueryParams {
-    pub query: String,
-    pub limit: Option<u32>,
-}
+#### 2. Chat-based Analysis
+1. Type questions in the input area at the bottom
+2. AI responds with analysis, SQL queries, and follow-up questions
+3. Full conversation history is maintained and searchable
+4. Context is preserved within each objective
 
-#[derive(Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct SqlQueryResult {
-    pub columns: Vec<String>,
-    pub rows: Vec<serde_json::Value>,
-    pub row_count: usize,
-    pub execution_time_ms: u64,
-}
+#### 3. Managing Multiple Objectives
+- Each objective maintains independent chat history
+- Switch contexts without losing analysis progress
+- Visual indicators show active/pending objectives
+- Parallel analysis execution where possible
+
+### Example Session
+```
+Objective 1: "Customer Segmentation Analysis"
+├─ User: "What are our main customer segments?"
+├─ AI: "Let me analyze your customer data..."
+├─ Tool: schema_inspection → Found customers, orders, products tables
+├─ Tool: sql_query → "SELECT customer_type, COUNT(*) FROM customers..."
+├─ AI: "I found 4 main segments: Enterprise (23%), SMB (45%), Individual (32%)"
+├─ User: "Which segment has highest lifetime value?"
+└─ AI: "Analyzing LTV by segment..."
+
+Objective 2: "Sales Performance Q4"
+├─ User: "How did Q4 sales compare to Q3?"
+├─ AI: "I'll compare quarterly performance..."
+└─ Tool: sql_query → "SELECT quarter, SUM(revenue) FROM orders..."
 ```
 
-#### 2. User Interaction Tool
-- **Purpose**: Ask clarifying questions or present findings to user
-- **Capabilities**:
-  - Display formatted results
-  - Ask yes/no questions
-  - Request additional context
-  - Present multiple choice options
-
-```rust
-#[derive(Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct UserPromptParams {
-    pub message: String,
-    pub prompt_type: UserPromptType,
-    pub options: Option<Vec<String>>,
-}
-
-#[derive(Serialize, Deserialize, TS)]
-#[ts(export)]
-pub enum UserPromptType {
-    Information,
-    YesNo,
-    MultipleChoice,
-    FreeText,
-}
-```
-
-#### 3. Database Schema Tool
-- **Purpose**: Inspect database structure and metadata
-- **Capabilities**:
-  - List tables and views
-  - Describe table schemas
-  - Show indexes and constraints
-  - Sample data preview
-
-```rust
-#[derive(Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct SchemaInspectionResult {
-    pub tables: Vec<TableInfo>,
-    pub views: Vec<ViewInfo>,
-    pub indexes: Vec<IndexInfo>,
-}
-```
-
-## LLM Integration
-
-### Request Format
-
-```rust
-#[derive(Serialize, Deserialize)]
-pub struct LlmRequest {
-    pub objective: String,
-    pub context: AnalysisContext,
-    pub available_tools: Vec<ToolDefinition>,
-    pub previous_actions: Vec<ToolExecution>,
-    pub max_iterations: u32,
-}
-```
-
-### Response Format
-
-```rust
-#[derive(Serialize, Deserialize)]
-pub struct LlmResponse {
-    pub reasoning: String,
-    pub next_action: NextAction,
-    pub confidence: f32,
-    pub requires_user_input: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum NextAction {
-    ExecuteTool {
-        tool_name: String,
-        parameters: serde_json::Value,
-    },
-    RequestUserInput {
-        message: String,
-        input_type: UserInputType,
-    },
-    ProvideAnswer {
-        answer: String,
-        supporting_data: Option<serde_json::Value>,
-    },
-    RequestMoreIterations {
-        reason: String,
-    },
-}
-```
-
-## Implementation Details
-
-### Project Structure
+## Project Structure
 
 ```
 src/
-├── main.rs                 # CLI entry point
+├── main.rs                 # TUI entry point
 ├── lib.rs                  # Library exports
-├── config/
+├── tui/
 │   ├── mod.rs
-│   └── settings.rs         # Configuration management
-├── tools/
+│   ├── app.rs             # Main application state
+│   ├── components/        # UI components
+│   │   ├── chat.rs        # Chat history display
+│   │   ├── objectives.rs  # Objectives panel
+│   │   ├── input.rs       # Input handling
+│   │   └── status.rs      # Status bar
+│   ├── events.rs          # Event handling
+│   └── layout.rs          # UI layout management
+├── session/
 │   ├── mod.rs
-│   ├── base.rs            # Tool trait and registry
-│   ├── sqlite.rs          # SQLite tool implementation
-│   ├── user_interaction.rs # User prompt tool
-│   └── schema.rs          # Database schema tool
-├── llm/
-│   ├── mod.rs
-│   ├── provider.rs        # LLM provider abstraction
-│   ├── openai.rs          # OpenAI integration
-│   ├── anthropic.rs       # Anthropic integration
-│   └── local.rs           # Local model support
+│   ├── manager.rs         # Session persistence
+│   ├── workspace.rs       # Workspace management
+│   └── history.rs         # Chat history storage
 ├── analysis/
 │   ├── mod.rs
-│   ├── engine.rs          # Analysis orchestration
-│   ├── context.rs         # Analysis context management
-│   └── results.rs         # Result formatting
+│   ├── objective.rs       # Objective management
+│   ├── context.rs         # Analysis context
+│   └── coordinator.rs     # Multi-objective coordination
+├── tools/                 # Tool implementations (unchanged)
+│   ├── mod.rs
+│   ├── base.rs
+│   ├── sqlite.rs
+│   ├── user_interaction.rs
+│   └── schema.rs
+├── llm/                   # LLM providers (enhanced)
+│   ├── mod.rs
+│   ├── provider.rs
+│   ├── streaming.rs       # Streaming response handling
+│   └── context.rs         # Multi-objective context
 └── types/
     ├── mod.rs
-    └── generated/          # Auto-generated TypeScript types
-        ├── tools/
-        │   ├── sqlite.ts
-        │   ├── user_interaction.ts
-        │   └── schema.ts
-        └── core.ts
+    └── generated/         # Auto-generated TypeScript types
 ```
 
-### Type Generation System
+## New Dependencies
 
-#### Management Command
-
-```bash
-cargo run --bin typegen
-```
-
-This command will:
-1. Scan all types marked with `#[derive(TS)]`
-2. Generate TypeScript definitions
-3. Organize by tool/module
-4. Create index files for easy imports
-5. Validate generated schemas
-
-#### Generated Directory Structure
-
-```
-types/
-├── index.ts               # Main exports
-├── core/
-│   ├── index.ts
-│   ├── analysis.ts
-│   └── llm.ts
-└── tools/
-    ├── index.ts
-    ├── sqlite.ts
-    ├── user_interaction.ts
-    └── schema.ts
-```
-
-### Error Handling
-
-```rust
-#[derive(Debug, thiserror::Error)]
-pub enum AnalysisError {
-    #[error("Database error: {0}")]
-    Database(#[from] rusqlite::Error),
-    
-    #[error("LLM provider error: {0}")]
-    LlmProvider(String),
-    
-    #[error("Tool execution error: {tool}: {error}")]
-    ToolExecution { tool: String, error: String },
-    
-    #[error("Maximum iterations exceeded: {max}")]
-    MaxIterationsExceeded { max: u32 },
-    
-    #[error("User cancelled analysis")]
-    UserCancelled,
-}
-```
-
-## Usage Flow
-
-### 1. Initialization
-```bash
-./data-analyzer --database ./hackernews.db --objective "What % of startup posts get replies from founders?"
-```
-
-### 2. Analysis Process
-1. **Database Inspection**: Tool examines schema and sample data
-2. **Initial Analysis**: LLM plans approach based on objective and schema
-3. **Iterative Querying**: Execute SQL queries, analyze results, refine approach
-4. **User Interaction**: Ask clarifying questions when needed
-5. **Result Synthesis**: Combine findings into final answer
-
-### 3. Example Interaction Flow
-
-```
-[1] Tool: schema_inspection
-    Result: Found tables: posts, comments, users
-    
-[2] Tool: sql_query
-    Query: "SELECT COUNT(*) FROM posts WHERE title LIKE '%startup%'"
-    Result: 1,247 startup-related posts
-    
-[3] Tool: user_prompt
-    Message: "I found posts mentioning 'startup'. Should I also include posts with 'founder', 'entrepreneur', etc.?"
-    Response: "Yes, include those terms"
-    
-[4] Tool: sql_query
-    Query: "SELECT p.id, p.title, p.author_id FROM posts p WHERE ..."
-    Result: 2,156 relevant posts identified
-    
-[5] Tool: sql_query
-    Query: "SELECT p.id, COUNT(c.id) as reply_count FROM posts p LEFT JOIN comments c..."
-    Result: Reply statistics calculated
-    
-[6] Final Answer: "23.4% of startup-related posts receive replies from founders or team members"
-```
-
-## Dependencies
-
-### Core Dependencies
+### TUI and Interface
 ```toml
 [dependencies]
-clap = { version = "4.0", features = ["derive"] }
-tokio = { version = "1.0", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-rusqlite = { version = "0.29", features = ["bundled"] }
-async-trait = "0.1"
-thiserror = "1.0"
-anyhow = "1.0"
-ts-rs = "7.0"
+# Existing dependencies...
+ratatui = "0.24"
+crossterm = "0.27"
+tokio-util = "0.7"
 
-# LLM Providers
-reqwest = { version = "0.11", features = ["json"] }
-openai-api-rs = "4.0"
+# Session management
+dirs = "5.0"
+uuid = { version = "1.0", features = ["v4"] }
 
-# CLI and UX
-colored = "2.0"
-indicatif = "0.17"
-dialoguer = "0.10"
+# Enhanced database
+rusqlite = { version = "0.29", features = ["bundled", "chrono"] }
+chrono = { version = "0.4", features = ["serde"] }
 ```
 
-### Development Dependencies
+## Configuration
+
+### Settings File (~/.pixlie/config.toml)
 ```toml
-[dev-dependencies]
-tempfile = "3.0"
-tokio-test = "0.4"
+[ui]
+theme = "dark"
+show_line_numbers = true
+chat_history_limit = 1000
+
+[llm]
+default_provider = "openai"
+default_model = "gpt-4"
+max_concurrent_requests = 3
+
+[session]
+auto_save_interval = 30  # seconds
+max_objectives = 10
+workspace_path = "~/.pixlie/workspaces"
+
+[database]
+default_timeout = 30
+max_query_results = 1000
 ```
+
+## Migration from CLI
+
+The original CLI functionality is preserved in `data-analyzer` binary:
+- Existing scripts and automation continue to work
+- CLI mode available via `--cli` flag
+- TUI is the new default interface
+- All tool functionality remains identical
 
 ## Future Enhancements
 
-### Phase 2 Features
-- **Multi-database Support**: PostgreSQL, MySQL, ClickHouse
-- **Visualization Tools**: Generate charts and graphs
-- **Export Tools**: CSV, JSON, PDF report generation
-- **Caching System**: Query result caching for performance
+### Phase 2: Advanced TUI Features
+- **Visualization Panel**: Inline charts and graphs in terminal
+- **Split Screen Mode**: Multiple objectives visible simultaneously  
+- **Collaboration**: Share workspaces with team members
+- **Plugin System**: Custom TUI components and tools
 
-### Phase 3 Features
-- **Plugin System**: Custom tool development
-- **Web Interface**: Browser-based analysis dashboard
-- **Collaborative Features**: Share analyses and results
-- **Advanced Analytics**: Statistical analysis tools
-
-## Security Considerations
-
-- **SQL Injection Prevention**: Parameterized queries and validation
-- **Sandboxed Execution**: Isolated tool execution environment
-- **API Key Management**: Secure credential storage
-- **Database Permissions**: Read-only access by default
-- **User Input Validation**: Sanitize all user inputs
+### Phase 3: Extended Capabilities
+- **Export Dashboard**: Generate reports and presentations
+- **Scheduled Analysis**: Automated recurring analysis
+- **Integration Hub**: Connect to external data sources
+- **AI Suggestions**: Proactive analysis recommendations
 
 ## Performance Considerations
 
-- **Connection Pooling**: Efficient database connection management
-- **Query Optimization**: Automatic query analysis and suggestions
-- **Concurrent Execution**: Parallel tool execution where possible
-- **Memory Management**: Streaming for large result sets
-- **Caching Strategy**: Intelligent caching of repeated queries
+- **Async Architecture**: Non-blocking UI with background processing
+- **Streaming Updates**: Real-time chat and result updates
+- **Memory Management**: Efficient chat history and session storage
+- **Concurrent Analysis**: Parallel objective processing where possible
+- **Caching Strategy**: Intelligent query and result caching
+
+## Security
+
+- **Session Encryption**: Encrypted workspace and history storage
+- **API Key Management**: Secure credential storage per workspace
+- **Audit Logging**: Track all database queries and AI interactions
+- **Sandboxed Execution**: Isolated tool execution environment
