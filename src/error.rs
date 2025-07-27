@@ -446,6 +446,30 @@ impl From<std::env::VarError> for PixlieError {
     }
 }
 
+/// Convert from TOML deserialization errors
+impl From<toml::de::Error> for PixlieError {
+    fn from(err: toml::de::Error) -> Self {
+        let context = ErrorContext::new().with_context("TOML deserialization failed");
+        PixlieError::Configuration {
+            message: format!("TOML parsing error: {}", err),
+            context,
+            source: Some(Box::new(err)),
+        }
+    }
+}
+
+/// Convert from TOML serialization errors
+impl From<toml::ser::Error> for PixlieError {
+    fn from(err: toml::ser::Error) -> Self {
+        let context = ErrorContext::new().with_context("TOML serialization failed");
+        PixlieError::Configuration {
+            message: format!("TOML serialization error: {}", err),
+            context,
+            source: Some(Box::new(err)),
+        }
+    }
+}
+
 /// Helper trait for adding error context to Results
 pub trait ErrorContextExt<T> {
     /// Add context to an error
