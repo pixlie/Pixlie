@@ -1,154 +1,53 @@
 use clap::Parser;
-use pixlie::{LoggingConfig, init_logging, log_error, ErrorContext, PixlieError, Result, ErrorSeverity, ConfigManager, CliArgs};
+use pixlie::{LoggingConfig, init_logging, log_error, ErrorContext, PixlieError, Result, ErrorSeverity, ConfigManager};
 use std::process;
 use tracing::{info, debug};
 
 #[derive(Parser)]
-#[command(name = "data-analyzer")]
-#[command(about = "LLM-enabled CLI data analysis tool for SQLite databases")]
+#[command(name = "pixlie")]
+#[command(about = "LLM-enabled TUI data analysis tool for SQLite databases")]
 #[command(version = "0.1.0")]
 pub struct Args {
-    /// Path to SQLite database file
-    #[arg(short, long)]
-    pub database: Option<String>,
-
-    /// Analysis objective or question
-    #[arg(short, long)]
-    pub objective: Option<String>,
-
-    /// LLM model to use
-    #[arg(short, long, default_value = "gpt-3.5-turbo")]
-    pub model: String,
-
-    /// Maximum number of iterations
-    #[arg(long, default_value = "10")]
-    pub max_iterations: u32,
-
-    /// Workspace path for project-specific settings
-    #[arg(short, long)]
+    /// Optional workspace path to open on startup
+    #[arg(value_name = "WORKSPACE")]
     pub workspace: Option<String>,
-
-    /// Enable JSON logging format
-    #[arg(long)]
-    pub json_logs: bool,
-
-    /// Log level (trace, debug, info, warn, error)
-    #[arg(long, default_value = "info")]
-    pub log_level: String,
-
-    /// Create default configuration files
-    #[arg(long)]
-    pub create_config: bool,
-
-    /// Show effective configuration and exit
-    #[arg(long)]
-    pub show_config: bool,
 }
 
-impl CliArgs for Args {
-    fn workspace(&self) -> Option<&str> {
-        self.workspace.as_deref()
-    }
-    
-    fn log_level(&self) -> &str {
-        &self.log_level
-    }
-    
-    fn json_logs(&self) -> bool {
-        self.json_logs
-    }
-    
-    fn model(&self) -> &str {
-        &self.model
-    }
-    
-    fn max_iterations(&self) -> u32 {
-        self.max_iterations
-    }
-}
 
 async fn run_application(args: Args) -> Result<()> {
-    let context = ErrorContext::new().with_context("Application startup");
+    let _context = ErrorContext::new().with_context("Application startup");
 
-    info!("🚀 Pixlie Data Analyzer v0.1.0");
+    info!("🚀 Pixlie TUI Data Analyzer v0.1.0");
 
     // Initialize configuration manager
     let mut config_manager = ConfigManager::new()?;
     
-    // Handle create-config flag
-    if args.create_config {
-        return handle_create_config(&args).await;
+    // Load workspace if specified
+    if let Some(workspace_path) = &args.workspace {
+        info!(workspace = workspace_path, "📁 Loading specified workspace");
+        load_workspace_configuration(&mut config_manager, workspace_path).await?;
+    } else {
+        // Auto-detect workspace in current directory
+        if let Some(detected_workspace) = detect_workspace_in_current_dir().await? {
+            info!(workspace = detected_workspace, "📁 Auto-detected workspace");
+            load_workspace_configuration(&mut config_manager, &detected_workspace).await?;
+        } else {
+            info!("📁 No workspace detected, using default configuration");
+        }
     }
 
-    // Load configuration from all sources
-    config_manager.load(&args).await?;
+    // Load configuration from environment and files (no CLI args to override)
+    load_basic_configuration(&mut config_manager).await?;
 
-    // Handle show-config flag
-    if args.show_config {
-        return handle_show_config(&config_manager).await;
-    }
-
-    // Get effective configuration
+    // Get effective configuration for TUI startup
     let ui_config = config_manager.effective_ui_config();
-    let llm_config = config_manager.effective_llm_config();
-    let database_config = config_manager.effective_database_config();
     let _session_config = config_manager.effective_session_config();
 
-    debug!("Effective configuration loaded");
+    debug!("Configuration loaded for TUI startup");
     debug!("UI theme: {}", ui_config.theme);
-    debug!("LLM model: {}", llm_config.default_model);
-    debug!("Database read-only: {}", database_config.read_only);
+    debug!("UI layout: {}", ui_config.layout);
 
-    // Validate database path if provided
-    if let Some(database) = &args.database {
-        info!(database = database, "📊 Database specified");
-        
-        // Check if file exists
-        if !std::path::Path::new(database).exists() {
-            return Err(PixlieError::validation(
-                "database",
-                "Database file does not exist",
-                context,
-            ));
-        }
-    } else if let Some(workspace) = &args.workspace {
-        // Check for default database in workspace metadata
-        if let Some(workspace_config) = &config_manager.workspace {
-            if let Some(default_db) = &workspace_config.metadata.default_database {
-                let db_path = std::path::Path::new(workspace).join(default_db);
-                if db_path.exists() {
-                    info!(database = %db_path.display(), "📊 Using workspace default database");
-                } else {
-                    info!("📊 Workspace default database not found: {:?}", db_path);
-                }
-            }
-        }
-        info!("📊 No database specified");
-    } else {
-        info!("📊 No database specified");
-    }
-
-    // Validate objective
-    if let Some(objective) = &args.objective {
-        info!(objective = objective, "🎯 Objective specified");
-        
-        if objective.trim().is_empty() {
-            return Err(PixlieError::validation(
-                "objective",
-                "Objective cannot be empty",
-                context,
-            ));
-        }
-    } else {
-        info!("🎯 No objective specified");
-    }
-
-    // Display effective configuration values
-    info!(model = llm_config.default_model, "🤖 Model selected");
-    info!(max_iterations = llm_config.max_iterations, "🔄 Max iterations set");
-    info!(theme = ui_config.theme, "🎨 UI theme");
-    info!(layout = ui_config.layout, "📐 UI layout");
-    
+    // Display startup information
     if let Some(workspace) = &args.workspace {
         info!(workspace = workspace, "📁 Workspace");
         
@@ -159,95 +58,104 @@ async fn run_application(args: Args) -> Result<()> {
             
             let pinned_count = workspace_config.workspace.pinned_objectives.len();
             if pinned_count > 0 {
-                info!(pinned_objectives = pinned_count, "📌 Pinned objectives");
+                info!(pinned_objectives = pinned_count, "📌 Pinned objectives available");
             }
         }
     }
 
-    info!("Hello, World! 🌍");
-    info!("Ready to analyze your data with AI! 🔍✨");
+    info!("🚀 Starting TUI interface...");
+    
+    // TODO: Launch TUI interface here
+    // For now, we'll show a placeholder message
+    println!("TUI interface would launch here!");
+    println!("Theme: {}", ui_config.theme);
+    println!("Layout: {}", ui_config.layout);
+    if let Some(workspace) = &config_manager.workspace {
+        if let Some(name) = &workspace.metadata.name {
+            println!("Workspace: {}", name);
+        }
+    }
 
     Ok(())
 }
 
-async fn handle_create_config(args: &Args) -> Result<()> {
+/// Load workspace configuration if workspace exists
+async fn load_workspace_configuration(config_manager: &mut ConfigManager, workspace_path: &str) -> Result<()> {
     use pixlie::ConfigLoader;
     
     let loader = ConfigLoader::new()?;
     
-    info!("Creating default configuration files...");
-    
-    // Create global config if it doesn't exist
-    if !loader.global_config_exists() {
-        loader.create_default_global_config().await?;
-        info!("✅ Created global configuration at: {:?}", loader.paths().global_config);
-    } else {
-        info!("ℹ️  Global configuration already exists at: {:?}", loader.paths().global_config);
-    }
-    
-    // Create workspace config if workspace is specified
-    if let Some(workspace_path) = &args.workspace {
-        if !loader.workspace_config_exists(workspace_path) {
-            // Extract workspace name from path
-            let workspace_name = std::path::Path::new(workspace_path)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .map(|s| s.to_string());
-                
-            loader.create_default_workspace_config(workspace_path, workspace_name).await?;
-            info!("✅ Created workspace configuration at: {}", 
-                std::path::Path::new(workspace_path).join(".pixlie-workspace.toml").display());
-        } else {
-            info!("ℹ️  Workspace configuration already exists at: {}",
-                std::path::Path::new(workspace_path).join(".pixlie-workspace.toml").display());
+    // Check if workspace configuration exists
+    if loader.workspace_config_exists(workspace_path) {
+        debug!("Loading workspace configuration from: {}", workspace_path);
+        if let Some(workspace_config) = loader.load_workspace_config(workspace_path).await? {
+            config_manager.workspace = Some(workspace_config);
+            config_manager.paths.workspace_config = Some(
+                std::path::PathBuf::from(workspace_path).join(".pixlie-workspace.toml")
+            );
         }
+    } else {
+        debug!("No workspace configuration found at: {}", workspace_path);
     }
     
-    info!("Configuration creation complete!");
     Ok(())
 }
 
-async fn handle_show_config(config_manager: &ConfigManager) -> Result<()> {
-    info!("Current effective configuration:");
+/// Load basic configuration (global config + environment variables)
+async fn load_basic_configuration(config_manager: &mut ConfigManager) -> Result<()> {
+    use pixlie::ConfigLoader;
     
-    let global_toml = toml::to_string_pretty(&config_manager.global)
-        .map_err(|e| PixlieError::configuration(
-            format!("Failed to serialize configuration: {}", e),
-            ErrorContext::new().with_context("Configuration serialization"),
+    let loader = ConfigLoader::new()?;
+    
+    // Load global configuration
+    config_manager.global = loader.load_global_config().await?;
+    
+    // Apply environment variable overrides
+    loader.apply_environment_overrides(&mut config_manager.global)?;
+    
+    debug!("Basic configuration loaded");
+    Ok(())
+}
+
+/// Detect if current directory or parent directories contain a workspace
+async fn detect_workspace_in_current_dir() -> Result<Option<String>> {
+    let current_dir = std::env::current_dir()
+        .map_err(|e| PixlieError::session(
+            format!("Failed to get current directory: {}", e),
+            ErrorContext::new().with_context("Workspace detection"),
         ))?;
     
-    println!("\n=== Global Configuration ===");
-    println!("{}", global_toml);
+    // Look for .pixlie-workspace.toml in current directory and parents
+    let mut dir = current_dir.as_path();
     
-    if let Some(workspace) = &config_manager.workspace {
-        let workspace_toml = toml::to_string_pretty(workspace)
-            .map_err(|e| PixlieError::configuration(
-                format!("Failed to serialize workspace configuration: {}", e),
-                ErrorContext::new().with_context("Workspace configuration serialization"),
-            ))?;
+    loop {
+        let workspace_config = dir.join(".pixlie-workspace.toml");
+        if workspace_config.exists() {
+            debug!("Found workspace configuration at: {:?}", dir);
+            return Ok(Some(dir.to_string_lossy().to_string()));
+        }
         
-        println!("\n=== Workspace Configuration ===");
-        println!("{}", workspace_toml);
+        // Move to parent directory
+        match dir.parent() {
+            Some(parent) => dir = parent,
+            None => break, // Reached filesystem root
+        }
     }
     
-    println!("\n=== Configuration File Paths ===");
-    println!("Global config: {:?}", config_manager.paths.global_config);
-    if let Some(workspace_config) = &config_manager.paths.workspace_config {
-        println!("Workspace config: {:?}", workspace_config);
-    }
-    
-    Ok(())
+    debug!("No workspace configuration found in current directory or parents");
+    Ok(None)
 }
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
 
-    // Initialize logging system
+    // Initialize basic logging system with defaults
+    // The configuration system will be loaded inside run_application
     let logging_config = LoggingConfig {
-        json_format: args.json_logs,
-        level: args.log_level.clone(),
-        colored: !args.json_logs, // Disable colors for JSON format
+        json_format: false,
+        level: "info".to_string(),
+        colored: true,
         file_path: None,
     };
 
