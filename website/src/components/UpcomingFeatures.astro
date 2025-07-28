@@ -1,0 +1,24 @@
+---
+const upcomingFeatures = [
+  {
+    name: 'Advanced TUI Features',
+    description: 'Including a visualization panel, split screen mode, and enhanced collaboration tools.',
+  },
+  {
+    name: 'Extended Capabilities',
+    description: 'Exportable dashboards, scheduled analysis, an integration hub, and AI-powered suggestions.',
+  },
+];
+---
+
+<section class="container mx-auto px-4 py-16">
+  <h2 class="text-4xl font-bold text-center">Upcoming Features</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+    {upcomingFeatures.map(feature => (
+      <div class="bg-gray-800 p-6 rounded-lg">
+        <h3 class="text-2xl font-bold">{feature.name}</h3>
+        <p class="mt-4">{feature.description}</p>
+      </div>
+    ))}
+  </div>
+</section>

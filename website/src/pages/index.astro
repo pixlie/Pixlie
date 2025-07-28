@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Features from '../components/Features.astro';
+import UpcomingFeatures from '../components/UpcomingFeatures.astro';
+import HowItWorks from '../components/HowItWorks.astro';
+import Architecture from '../components/Architecture.astro';
+---
+
+<Layout>
+  <main class="bg-gray-900 text-white">
+    <header class="container mx-auto px-4 py-16 text-center">
+      <h1 class="text-5xl font-bold">Pixlie</h1>
+      <p class="mt-4 text-xl">Your friendly command-line companion for seamless project interaction.</p>
+      <a href="https://github.com/pixlie/pixlie" class="mt-8 inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded">
+        View on GitHub
+      </a>
+    </header>
+    <Features />
+    <UpcomingFeatures />
+    <HowItWorks />
+    <Architecture />
+  </main>
+</Layout>
