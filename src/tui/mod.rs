@@ -1,7 +1,7 @@
 pub mod app;
+pub mod components;
 pub mod events;
 pub mod layout;
-pub mod components;
 
 pub use app::{App, AppMode, SettingsTab};
 pub use events::{Event, EventHandler};

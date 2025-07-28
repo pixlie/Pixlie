@@ -29,7 +29,7 @@ impl Layout {
     pub fn settings_layout(area: Rect) -> Vec<Rect> {
         // Center the settings modal
         let popup_area = Layout::centered_rect(80, 70, area);
-        
+
         let chunks = ratatui::layout::Layout::default()
             .direction(Direction::Vertical)
             .constraints([

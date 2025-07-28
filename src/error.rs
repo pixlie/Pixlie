@@ -1,12 +1,12 @@
 //! Comprehensive error handling system for Pixlie TUI application
-//! 
+//!
 //! This module provides a structured error hierarchy using thiserror,
 //! with proper error context and correlation IDs for debugging and monitoring.
 
+use chrono::{DateTime, Utc};
 use std::fmt;
 use thiserror::Error;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 /// Error context with correlation ID and timestamp for debugging
 #[derive(Debug, Clone)]
@@ -201,10 +201,14 @@ impl PixlieError {
             PixlieError::Database { message, .. } => {
                 format!("Database Error: {}", message)
             }
-            PixlieError::LlmProvider { message, provider, .. } => {
+            PixlieError::LlmProvider {
+                message, provider, ..
+            } => {
                 format!("AI Provider Error ({}): {}", provider, message)
             }
-            PixlieError::ToolExecution { tool_name, message, .. } => {
+            PixlieError::ToolExecution {
+                tool_name, message, ..
+            } => {
                 format!("Tool Error ({}): {}", tool_name, message)
             }
             PixlieError::Configuration { message, .. } => {
@@ -499,14 +503,14 @@ where
             let mut error = e.into();
             // Update the context if it's a PixlieError
             match &mut error {
-                PixlieError::Tui { context, .. } |
-                PixlieError::Session { context, .. } |
-                PixlieError::Database { context, .. } |
-                PixlieError::LlmProvider { context, .. } |
-                PixlieError::ToolExecution { context, .. } |
-                PixlieError::Configuration { context, .. } |
-                PixlieError::Analysis { context, .. } |
-                PixlieError::Validation { context, .. } => {
+                PixlieError::Tui { context, .. }
+                | PixlieError::Session { context, .. }
+                | PixlieError::Database { context, .. }
+                | PixlieError::LlmProvider { context, .. }
+                | PixlieError::ToolExecution { context, .. }
+                | PixlieError::Configuration { context, .. }
+                | PixlieError::Analysis { context, .. }
+                | PixlieError::Validation { context, .. } => {
                     let new_context = f();
                     // Preserve the original correlation_id and timestamp, but update other fields
                     if new_context.session_id.is_some() {
@@ -576,7 +580,7 @@ mod tests {
     fn test_pixlie_error_creation() {
         let context = ErrorContext::new();
         let error = PixlieError::tui("Test error", context);
-        
+
         match error {
             PixlieError::Tui { message, .. } => {
                 assert_eq!(message, "Test error");
@@ -588,7 +592,8 @@ mod tests {
     #[test]
     fn test_error_retryable() {
         let context = ErrorContext::new();
-        let retryable_error = PixlieError::llm_provider("API error", "openai", true, context.clone());
+        let retryable_error =
+            PixlieError::llm_provider("API error", "openai", true, context.clone());
         let non_retryable_error = PixlieError::database("Connection failed", context);
 
         assert!(retryable_error.is_retryable());
@@ -598,7 +603,7 @@ mod tests {
     #[test]
     fn test_error_severity() {
         let context = ErrorContext::new();
-        
+
         let validation_error = PixlieError::validation("field", "invalid", context.clone());
         let config_error = PixlieError::configuration("missing config", context);
 

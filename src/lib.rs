@@ -1,16 +1,16 @@
 //! Pixlie - LLM-enabled CLI data analysis tool
-//! 
-//! A Rust-based CLI application that leverages Large Language Models (LLMs) 
+//!
+//! A Rust-based CLI application that leverages Large Language Models (LLMs)
 //! to perform intelligent data analysis on SQLite databases.
 
+pub mod config;
 pub mod error;
 pub mod logging;
-pub mod config;
 pub mod tui;
 
-pub use error::{PixlieError, ErrorContext, ErrorContextExt, ErrorSeverity, Result};
-pub use logging::{LoggingConfig, init_logging, log_error, log_performance_metric};
-pub use config::{ConfigManager, GlobalConfig, WorkspaceConfig, ConfigLoader, CliArgs};
+pub use config::{CliArgs, ConfigLoader, ConfigManager, GlobalConfig, WorkspaceConfig};
+pub use error::{ErrorContext, ErrorContextExt, ErrorSeverity, PixlieError, Result};
+pub use logging::{init_logging, log_error, log_performance_metric, LoggingConfig};
 
 /// Library version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

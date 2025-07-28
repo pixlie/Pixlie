@@ -1,10 +1,10 @@
 //! Configuration settings for Pixlie TUI application
-//! 
+//!
 //! Defines all configuration structures for different components of the application.
 
+use crate::error::{ErrorContext, ErrorContextExt, PixlieError, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::error::{PixlieError, ErrorContext, Result, ErrorContextExt};
 
 /// Global application configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,19 +12,19 @@ pub struct GlobalConfig {
     /// UI configuration
     #[serde(default)]
     pub ui: UiConfig,
-    
+
     /// Session management configuration
     #[serde(default)]
     pub session: SessionConfig,
-    
+
     /// LLM provider configuration
     #[serde(default)]
     pub llm: LlmConfig,
-    
+
     /// Database configuration
     #[serde(default)]
     pub database: DatabaseConfig,
-    
+
     /// Keyboard shortcuts configuration
     #[serde(default)]
     pub shortcuts: ShortcutsConfig,
@@ -36,39 +36,39 @@ pub struct UiConfig {
     /// Theme name (dark, light, auto)
     #[serde(default = "default_theme")]
     pub theme: String,
-    
+
     /// Layout style (compact, comfortable, spacious)
     #[serde(default = "default_layout")]
     pub layout: String,
-    
+
     /// Enable colored output
     #[serde(default = "default_colored")]
     pub colored: bool,
-    
+
     /// JSON logging format
     #[serde(default)]
     pub json_logs: bool,
-    
+
     /// Log level (trace, debug, info, warn, error)
     #[serde(default = "default_log_level")]
     pub log_level: String,
-    
+
     /// Maximum chat history to display in TUI
     #[serde(default = "default_max_chat_history")]
     pub max_chat_history: usize,
-    
+
     /// Auto-save interval in seconds
     #[serde(default = "default_autosave_interval")]
     pub autosave_interval: u64,
-    
+
     /// Enable line numbers in code blocks
     #[serde(default = "default_show_line_numbers")]
     pub show_line_numbers: bool,
-    
+
     /// Word wrap in chat messages
     #[serde(default = "default_word_wrap")]
     pub word_wrap: bool,
-    
+
     /// Animation duration in milliseconds
     #[serde(default = "default_animation_duration")]
     pub animation_duration: u64,
@@ -80,23 +80,23 @@ pub struct SessionConfig {
     /// Default workspace directory
     #[serde(default)]
     pub default_workspace: Option<String>,
-    
+
     /// Maximum number of concurrent objectives
     #[serde(default = "default_max_objectives")]
     pub max_objectives: usize,
-    
+
     /// Chat history retention in days
     #[serde(default = "default_history_retention_days")]
     pub history_retention_days: u32,
-    
+
     /// Maximum history file size in MB
     #[serde(default = "default_max_history_size_mb")]
     pub max_history_size_mb: u64,
-    
+
     /// Auto-save session state
     #[serde(default = "default_auto_save")]
     pub auto_save: bool,
-    
+
     /// Session backup frequency in minutes
     #[serde(default = "default_backup_frequency")]
     pub backup_frequency: u32,
@@ -108,31 +108,31 @@ pub struct LlmConfig {
     /// Default model to use
     #[serde(default = "default_model")]
     pub default_model: String,
-    
+
     /// Maximum iterations for analysis
     #[serde(default = "default_max_iterations")]
     pub max_iterations: u32,
-    
+
     /// Request timeout in seconds
     #[serde(default = "default_request_timeout")]
     pub request_timeout: u64,
-    
+
     /// Maximum tokens per request
     #[serde(default = "default_max_tokens")]
     pub max_tokens: u32,
-    
+
     /// Temperature for response generation
     #[serde(default = "default_temperature")]
     pub temperature: f32,
-    
+
     /// Provider-specific configurations
     #[serde(default)]
     pub providers: HashMap<String, ProviderConfig>,
-    
+
     /// Enable streaming responses
     #[serde(default = "default_enable_streaming")]
     pub enable_streaming: bool,
-    
+
     /// Retry attempts for failed requests
     #[serde(default = "default_retry_attempts")]
     pub retry_attempts: u32,
@@ -143,17 +143,17 @@ pub struct LlmConfig {
 pub struct ProviderConfig {
     /// API endpoint URL
     pub endpoint: Option<String>,
-    
+
     /// API key (should be set via environment variable)
     pub api_key_env: Option<String>,
-    
+
     /// Custom headers
     #[serde(default)]
     pub headers: HashMap<String, String>,
-    
+
     /// Rate limit (requests per minute)
     pub rate_limit: Option<u32>,
-    
+
     /// Default model for this provider
     pub default_model: Option<String>,
 }
@@ -164,27 +164,27 @@ pub struct DatabaseConfig {
     /// Connection timeout in seconds
     #[serde(default = "default_connection_timeout")]
     pub connection_timeout: u64,
-    
+
     /// Query timeout in seconds
     #[serde(default = "default_query_timeout")]
     pub query_timeout: u64,
-    
+
     /// Maximum number of concurrent connections
     #[serde(default = "default_max_connections")]
     pub max_connections: u32,
-    
+
     /// Enable read-only mode by default
     #[serde(default = "default_read_only")]
     pub read_only: bool,
-    
+
     /// Query result limit
     #[serde(default = "default_query_result_limit")]
     pub query_result_limit: usize,
-    
+
     /// Enable query caching
     #[serde(default = "default_enable_caching")]
     pub enable_caching: bool,
-    
+
     /// Cache TTL in seconds
     #[serde(default = "default_cache_ttl")]
     pub cache_ttl: u64,
@@ -196,59 +196,59 @@ pub struct ShortcutsConfig {
     /// Quit application
     #[serde(default = "default_quit_key")]
     pub quit: String,
-    
+
     /// Create new objective
     #[serde(default = "default_new_objective_key")]
     pub new_objective: String,
-    
+
     /// Delete current objective
     #[serde(default = "default_delete_objective_key")]
     pub delete_objective: String,
-    
+
     /// Toggle chat history
     #[serde(default = "default_toggle_history_key")]
     pub toggle_history: String,
-    
+
     /// Save session
     #[serde(default = "default_save_session_key")]
     pub save_session: String,
-    
+
     /// Load session
     #[serde(default = "default_load_session_key")]
     pub load_session: String,
-    
+
     /// Switch to next objective
     #[serde(default = "default_next_objective_key")]
     pub next_objective: String,
-    
+
     /// Switch to previous objective
     #[serde(default = "default_prev_objective_key")]
     pub prev_objective: String,
-    
+
     /// Open settings
     #[serde(default = "default_settings_key")]
     pub settings: String,
-    
+
     /// Send message/execute command
     #[serde(default = "default_send_key")]
     pub send: String,
-    
+
     /// Clear input
     #[serde(default = "default_clear_input_key")]
     pub clear_input: String,
-    
+
     /// Navigate up
     #[serde(default = "default_nav_up_key")]
     pub nav_up: String,
-    
+
     /// Navigate down
     #[serde(default = "default_nav_down_key")]
     pub nav_down: String,
-    
+
     /// Navigate left
     #[serde(default = "default_nav_left_key")]
     pub nav_left: String,
-    
+
     /// Navigate right
     #[serde(default = "default_nav_right_key")]
     pub nav_right: String,
@@ -256,53 +256,139 @@ pub struct ShortcutsConfig {
 
 // Default value functions for serde defaults
 
-fn default_theme() -> String { "dark".to_string() }
-fn default_layout() -> String { "comfortable".to_string() }
-fn default_colored() -> bool { true }
-fn default_log_level() -> String { "info".to_string() }
-fn default_max_chat_history() -> usize { 1000 }
-fn default_autosave_interval() -> u64 { 30 }
-fn default_show_line_numbers() -> bool { true }
-fn default_word_wrap() -> bool { true }
-fn default_animation_duration() -> u64 { 200 }
+fn default_theme() -> String {
+    "dark".to_string()
+}
+fn default_layout() -> String {
+    "comfortable".to_string()
+}
+fn default_colored() -> bool {
+    true
+}
+fn default_log_level() -> String {
+    "info".to_string()
+}
+fn default_max_chat_history() -> usize {
+    1000
+}
+fn default_autosave_interval() -> u64 {
+    30
+}
+fn default_show_line_numbers() -> bool {
+    true
+}
+fn default_word_wrap() -> bool {
+    true
+}
+fn default_animation_duration() -> u64 {
+    200
+}
 
-fn default_max_objectives() -> usize { 10 }
-fn default_history_retention_days() -> u32 { 30 }
-fn default_max_history_size_mb() -> u64 { 100 }
-fn default_auto_save() -> bool { true }
-fn default_backup_frequency() -> u32 { 15 }
+fn default_max_objectives() -> usize {
+    10
+}
+fn default_history_retention_days() -> u32 {
+    30
+}
+fn default_max_history_size_mb() -> u64 {
+    100
+}
+fn default_auto_save() -> bool {
+    true
+}
+fn default_backup_frequency() -> u32 {
+    15
+}
 
-fn default_model() -> String { "gpt-3.5-turbo".to_string() }
-fn default_max_iterations() -> u32 { 10 }
-fn default_request_timeout() -> u64 { 30 }
-fn default_max_tokens() -> u32 { 4096 }
-fn default_temperature() -> f32 { 0.7 }
-fn default_enable_streaming() -> bool { true }
-fn default_retry_attempts() -> u32 { 3 }
+fn default_model() -> String {
+    "gpt-3.5-turbo".to_string()
+}
+fn default_max_iterations() -> u32 {
+    10
+}
+fn default_request_timeout() -> u64 {
+    30
+}
+fn default_max_tokens() -> u32 {
+    4096
+}
+fn default_temperature() -> f32 {
+    0.7
+}
+fn default_enable_streaming() -> bool {
+    true
+}
+fn default_retry_attempts() -> u32 {
+    3
+}
 
-fn default_connection_timeout() -> u64 { 30 }
-fn default_query_timeout() -> u64 { 60 }
-fn default_max_connections() -> u32 { 10 }
-fn default_read_only() -> bool { true }
-fn default_query_result_limit() -> usize { 1000 }
-fn default_enable_caching() -> bool { true }
-fn default_cache_ttl() -> u64 { 300 }
+fn default_connection_timeout() -> u64 {
+    30
+}
+fn default_query_timeout() -> u64 {
+    60
+}
+fn default_max_connections() -> u32 {
+    10
+}
+fn default_read_only() -> bool {
+    true
+}
+fn default_query_result_limit() -> usize {
+    1000
+}
+fn default_enable_caching() -> bool {
+    true
+}
+fn default_cache_ttl() -> u64 {
+    300
+}
 
-fn default_quit_key() -> String { "Ctrl+Q".to_string() }
-fn default_new_objective_key() -> String { "Ctrl+N".to_string() }
-fn default_delete_objective_key() -> String { "Ctrl+D".to_string() }
-fn default_toggle_history_key() -> String { "Ctrl+H".to_string() }
-fn default_save_session_key() -> String { "Ctrl+S".to_string() }
-fn default_load_session_key() -> String { "Ctrl+L".to_string() }
-fn default_next_objective_key() -> String { "Tab".to_string() }
-fn default_prev_objective_key() -> String { "Shift+Tab".to_string() }
-fn default_settings_key() -> String { "Ctrl+,".to_string() }
-fn default_send_key() -> String { "Enter".to_string() }
-fn default_clear_input_key() -> String { "Ctrl+U".to_string() }
-fn default_nav_up_key() -> String { "Up".to_string() }
-fn default_nav_down_key() -> String { "Down".to_string() }
-fn default_nav_left_key() -> String { "Left".to_string() }
-fn default_nav_right_key() -> String { "Right".to_string() }
+fn default_quit_key() -> String {
+    "Ctrl+Q".to_string()
+}
+fn default_new_objective_key() -> String {
+    "Ctrl+N".to_string()
+}
+fn default_delete_objective_key() -> String {
+    "Ctrl+D".to_string()
+}
+fn default_toggle_history_key() -> String {
+    "Ctrl+H".to_string()
+}
+fn default_save_session_key() -> String {
+    "Ctrl+S".to_string()
+}
+fn default_load_session_key() -> String {
+    "Ctrl+L".to_string()
+}
+fn default_next_objective_key() -> String {
+    "Tab".to_string()
+}
+fn default_prev_objective_key() -> String {
+    "Shift+Tab".to_string()
+}
+fn default_settings_key() -> String {
+    "Ctrl+,".to_string()
+}
+fn default_send_key() -> String {
+    "Enter".to_string()
+}
+fn default_clear_input_key() -> String {
+    "Ctrl+U".to_string()
+}
+fn default_nav_up_key() -> String {
+    "Up".to_string()
+}
+fn default_nav_down_key() -> String {
+    "Down".to_string()
+}
+fn default_nav_left_key() -> String {
+    "Left".to_string()
+}
+fn default_nav_right_key() -> String {
+    "Right".to_string()
+}
 
 // Default implementations
 
@@ -405,13 +491,13 @@ impl GlobalConfig {
     /// Validate the global configuration
     pub fn validate(&self) -> Result<()> {
         let context = ErrorContext::new().with_context("Global configuration validation");
-        
+
         self.ui.validate().with_context(|| context.clone())?;
         self.session.validate().with_context(|| context.clone())?;
         self.llm.validate().with_context(|| context.clone())?;
         self.database.validate().with_context(|| context.clone())?;
         self.shortcuts.validate().with_context(|| context.clone())?;
-        
+
         Ok(())
     }
 }
@@ -420,7 +506,7 @@ impl UiConfig {
     /// Validate UI configuration
     pub fn validate(&self) -> Result<()> {
         let context = ErrorContext::new().with_context("UI configuration validation");
-        
+
         // Validate theme
         if !["dark", "light", "auto"].contains(&self.theme.as_str()) {
             return Err(PixlieError::validation(
@@ -429,7 +515,7 @@ impl UiConfig {
                 context,
             ));
         }
-        
+
         // Validate layout
         if !["compact", "comfortable", "spacious"].contains(&self.layout.as_str()) {
             return Err(PixlieError::validation(
@@ -438,7 +524,7 @@ impl UiConfig {
                 context,
             ));
         }
-        
+
         // Validate log level
         if !["trace", "debug", "info", "warn", "error"].contains(&self.log_level.as_str()) {
             return Err(PixlieError::validation(
@@ -447,7 +533,7 @@ impl UiConfig {
                 context,
             ));
         }
-        
+
         // Validate reasonable values
         if self.max_chat_history > 10000 {
             return Err(PixlieError::validation(
@@ -456,7 +542,7 @@ impl UiConfig {
                 context,
             ));
         }
-        
+
         if self.autosave_interval > 3600 {
             return Err(PixlieError::validation(
                 "ui.autosave_interval",
@@ -464,7 +550,7 @@ impl UiConfig {
                 context,
             ));
         }
-        
+
         Ok(())
     }
 }
@@ -473,7 +559,7 @@ impl SessionConfig {
     /// Validate session configuration
     pub fn validate(&self) -> Result<()> {
         let context = ErrorContext::new().with_context("Session configuration validation");
-        
+
         if self.max_objectives > 50 {
             return Err(PixlieError::validation(
                 "session.max_objectives",
@@ -481,7 +567,7 @@ impl SessionConfig {
                 context,
             ));
         }
-        
+
         if self.history_retention_days > 365 {
             return Err(PixlieError::validation(
                 "session.history_retention_days",
@@ -489,7 +575,7 @@ impl SessionConfig {
                 context,
             ));
         }
-        
+
         if self.max_history_size_mb > 1000 {
             return Err(PixlieError::validation(
                 "session.max_history_size_mb",
@@ -497,7 +583,7 @@ impl SessionConfig {
                 context,
             ));
         }
-        
+
         Ok(())
     }
 }
@@ -506,7 +592,7 @@ impl LlmConfig {
     /// Validate LLM configuration
     pub fn validate(&self) -> Result<()> {
         let context = ErrorContext::new().with_context("LLM configuration validation");
-        
+
         if self.max_iterations > 100 {
             return Err(PixlieError::validation(
                 "llm.max_iterations",
@@ -514,7 +600,7 @@ impl LlmConfig {
                 context,
             ));
         }
-        
+
         if self.request_timeout > 300 {
             return Err(PixlieError::validation(
                 "llm.request_timeout",
@@ -522,7 +608,7 @@ impl LlmConfig {
                 context,
             ));
         }
-        
+
         if self.temperature < 0.0 || self.temperature > 2.0 {
             return Err(PixlieError::validation(
                 "llm.temperature",
@@ -530,7 +616,7 @@ impl LlmConfig {
                 context,
             ));
         }
-        
+
         if self.max_tokens > 100000 {
             return Err(PixlieError::validation(
                 "llm.max_tokens",
@@ -538,7 +624,7 @@ impl LlmConfig {
                 context,
             ));
         }
-        
+
         Ok(())
     }
 }
@@ -547,7 +633,7 @@ impl DatabaseConfig {
     /// Validate database configuration
     pub fn validate(&self) -> Result<()> {
         let context = ErrorContext::new().with_context("Database configuration validation");
-        
+
         if self.connection_timeout > 300 {
             return Err(PixlieError::validation(
                 "database.connection_timeout",
@@ -555,7 +641,7 @@ impl DatabaseConfig {
                 context,
             ));
         }
-        
+
         if self.query_timeout > 3600 {
             return Err(PixlieError::validation(
                 "database.query_timeout",
@@ -563,7 +649,7 @@ impl DatabaseConfig {
                 context,
             ));
         }
-        
+
         if self.max_connections > 100 {
             return Err(PixlieError::validation(
                 "database.max_connections",
@@ -571,7 +657,7 @@ impl DatabaseConfig {
                 context,
             ));
         }
-        
+
         if self.query_result_limit > 100000 {
             return Err(PixlieError::validation(
                 "database.query_result_limit",
@@ -579,7 +665,7 @@ impl DatabaseConfig {
                 context,
             ));
         }
-        
+
         Ok(())
     }
 }
@@ -610,10 +696,10 @@ mod tests {
     fn test_ui_config_validation() {
         let mut ui = UiConfig::default();
         assert!(ui.validate().is_ok());
-        
+
         ui.theme = "invalid".to_string();
         assert!(ui.validate().is_err());
-        
+
         ui.theme = "dark".to_string();
         ui.max_chat_history = 20000;
         assert!(ui.validate().is_err());
@@ -623,10 +709,10 @@ mod tests {
     fn test_llm_config_validation() {
         let mut llm = LlmConfig::default();
         assert!(llm.validate().is_ok());
-        
+
         llm.temperature = 3.0;
         assert!(llm.validate().is_err());
-        
+
         llm.temperature = 0.5;
         llm.max_iterations = 200;
         assert!(llm.validate().is_err());
@@ -637,7 +723,7 @@ mod tests {
         let config = GlobalConfig::default();
         let toml_str = toml::to_string(&config).unwrap();
         let parsed: GlobalConfig = toml::from_str(&toml_str).unwrap();
-        
+
         assert_eq!(config.ui.theme, parsed.ui.theme);
         assert_eq!(config.llm.default_model, parsed.llm.default_model);
     }
