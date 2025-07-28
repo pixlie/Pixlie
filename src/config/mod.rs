@@ -1,5 +1,5 @@
 //! Configuration management system for Pixlie TUI application
-//! 
+//!
 //! This module provides comprehensive configuration management including:
 //! - TUI-specific settings (theme, layout, shortcuts)
 //! - Workspace-specific configurations
@@ -7,15 +7,15 @@
 //! - Configuration file, environment variables, and CLI argument handling
 //! - Configuration validation and merging with proper precedence
 
+pub mod loader;
 pub mod settings;
 pub mod workspace;
-pub mod loader;
 
+pub use loader::*;
 pub use settings::*;
 pub use workspace::*;
-pub use loader::*;
 
-use crate::error::{PixlieError, ErrorContext, Result, ErrorContextExt};
+use crate::error::{ErrorContext, ErrorContextExt, PixlieError, Result};
 use std::path::PathBuf;
 
 /// Trait representing CLI arguments needed by the configuration system
@@ -54,7 +54,7 @@ impl ConfigManager {
     pub fn new() -> Result<Self> {
         let paths = ConfigPaths::new()?;
         let global = GlobalConfig::default();
-        
+
         Ok(Self {
             global,
             workspace: None,
@@ -106,11 +106,15 @@ impl ConfigManager {
         let context = ErrorContext::new().with_context("Configuration saving");
 
         // Save global configuration
-        self.save_global_config().await.with_context(|| context.clone())?;
+        self.save_global_config()
+            .await
+            .with_context(|| context.clone())?;
 
         // Save workspace configuration if present
         if let Some(workspace) = &self.workspace {
-            self.save_workspace_config(workspace).await.with_context(|| context.clone())?;
+            self.save_workspace_config(workspace)
+                .await
+                .with_context(|| context.clone())?;
         }
 
         Ok(())
@@ -201,14 +205,14 @@ impl ConfigManager {
     /// Load workspace-specific configuration
     async fn load_workspace_config(&mut self, workspace_path: &str) -> Result<()> {
         let workspace_config_path = PathBuf::from(workspace_path).join(".pixlie-workspace.toml");
-        
+
         if workspace_config_path.exists() {
             let content = tokio::fs::read_to_string(&workspace_config_path).await?;
             let config: WorkspaceConfig = toml::from_str(&content)?;
             self.workspace = Some(config);
             self.paths.workspace_config = Some(workspace_config_path);
         }
-        
+
         Ok(())
     }
 
@@ -242,7 +246,7 @@ impl ConfigManager {
 
         let content = toml::to_string_pretty(&self.global)?;
         tokio::fs::write(&self.paths.global_config, content).await?;
-        
+
         Ok(())
     }
 
@@ -252,7 +256,7 @@ impl ConfigManager {
             let content = toml::to_string_pretty(workspace)?;
             tokio::fs::write(workspace_config_path, content).await?;
         }
-        
+
         Ok(())
     }
 }
@@ -288,7 +292,7 @@ mod tests {
     async fn test_config_manager_creation() {
         let config_manager = ConfigManager::new();
         assert!(config_manager.is_ok());
-        
+
         let manager = config_manager.unwrap();
         assert!(manager.workspace.is_none());
         assert_eq!(manager.global.ui.theme, "dark");
@@ -298,7 +302,7 @@ mod tests {
     fn test_config_paths_creation() {
         let paths = ConfigPaths::new();
         assert!(paths.is_ok());
-        
+
         let paths = paths.unwrap();
         assert!(paths.global_config.to_string_lossy().contains("pixlie"));
         assert!(paths.config_dir.to_string_lossy().contains("pixlie"));

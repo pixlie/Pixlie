@@ -1,16 +1,19 @@
 use clap::Parser;
-use pixlie::{LoggingConfig, init_logging, log_error, ErrorContext, PixlieError, Result, ErrorSeverity, ConfigManager};
-use pixlie::tui::{App, EventHandler, Event};
-use pixlie::tui::components::SettingsModal;
-use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph};
-use std::process;
-use std::io;
 use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use tracing::{info, debug};
+use pixlie::tui::components::SettingsModal;
+use pixlie::tui::{App, Event, EventHandler};
+use pixlie::{
+    init_logging, log_error, ConfigManager, ErrorContext, ErrorSeverity, LoggingConfig,
+    PixlieError, Result,
+};
+use ratatui::prelude::*;
+use ratatui::widgets::{Block, Borders, Paragraph};
+use std::io;
+use std::process;
+use tracing::{debug, info};
 
 #[derive(Parser)]
 #[command(name = "pixlie")]
@@ -22,7 +25,6 @@ pub struct Args {
     pub workspace: Option<String>,
 }
 
-
 async fn run_application(args: Args) -> Result<()> {
     let _context = ErrorContext::new().with_context("Application startup");
 
@@ -30,7 +32,7 @@ async fn run_application(args: Args) -> Result<()> {
 
     // Initialize configuration manager
     let mut config_manager = ConfigManager::new()?;
-    
+
     // Load workspace if specified
     if let Some(workspace_path) = &args.workspace {
         info!(workspace = workspace_path, "📁 Loading specified workspace");
@@ -59,21 +61,24 @@ async fn run_application(args: Args) -> Result<()> {
     // Display startup information
     if let Some(workspace) = &args.workspace {
         info!(workspace = workspace, "📁 Workspace");
-        
+
         if let Some(workspace_config) = &config_manager.workspace {
             if let Some(name) = &workspace_config.metadata.name {
                 info!(workspace_name = name, "📁 Workspace name");
             }
-            
+
             let pinned_count = workspace_config.workspace.pinned_objectives.len();
             if pinned_count > 0 {
-                info!(pinned_objectives = pinned_count, "📌 Pinned objectives available");
+                info!(
+                    pinned_objectives = pinned_count,
+                    "📌 Pinned objectives available"
+                );
             }
         }
     }
 
     info!("🚀 Starting TUI interface...");
-    
+
     // Launch actual TUI interface
     start_tui(config_manager).await
 }
@@ -81,44 +86,62 @@ async fn run_application(args: Args) -> Result<()> {
 /// Start the TUI interface
 async fn start_tui(config_manager: ConfigManager) -> Result<()> {
     // Setup terminal
-    enable_raw_mode().map_err(|e| PixlieError::session(
-        format!("Failed to enable raw mode: {}", e),
-        ErrorContext::new().with_context("TUI initialization"),
-    ))?;
-    
+    enable_raw_mode().map_err(|e| {
+        PixlieError::session(
+            format!("Failed to enable raw mode: {}", e),
+            ErrorContext::new().with_context("TUI initialization"),
+        )
+    })?;
+
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen).map_err(|e| PixlieError::session(
-        format!("Failed to enter alternate screen: {}", e),
-        ErrorContext::new().with_context("TUI initialization"),
-    ))?;
-    
+    execute!(stdout, EnterAlternateScreen).map_err(|e| {
+        PixlieError::session(
+            format!("Failed to enter alternate screen: {}", e),
+            ErrorContext::new().with_context("TUI initialization"),
+        )
+    })?;
+
     let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend).map_err(|e| PixlieError::session(
-        format!("Failed to create terminal: {}", e),
-        ErrorContext::new().with_context("TUI initialization"),
-    ))?;
+    let mut terminal = Terminal::new(backend).map_err(|e| {
+        PixlieError::session(
+            format!("Failed to create terminal: {}", e),
+            ErrorContext::new().with_context("TUI initialization"),
+        )
+    })?;
 
     // Create app and event handler
     let mut app = App::new(config_manager);
+
+    // If no workspace is loaded, open the workspace picker
+    if app.mode() == &pixlie::tui::AppMode::WorkspacePicker {
+        app.open_workspace_picker().await;
+    }
+
     let mut event_handler = EventHandler::new();
 
     let result = run_tui_loop(&mut terminal, &mut app, &mut event_handler).await;
 
     // Restore terminal
-    disable_raw_mode().map_err(|e| PixlieError::session(
-        format!("Failed to disable raw mode: {}", e),
-        ErrorContext::new().with_context("TUI cleanup"),
-    ))?;
-    
-    execute!(terminal.backend_mut(), LeaveAlternateScreen).map_err(|e| PixlieError::session(
-        format!("Failed to leave alternate screen: {}", e),
-        ErrorContext::new().with_context("TUI cleanup"),
-    ))?;
-    
-    terminal.show_cursor().map_err(|e| PixlieError::session(
-        format!("Failed to show cursor: {}", e),
-        ErrorContext::new().with_context("TUI cleanup"),
-    ))?;
+    disable_raw_mode().map_err(|e| {
+        PixlieError::session(
+            format!("Failed to disable raw mode: {}", e),
+            ErrorContext::new().with_context("TUI cleanup"),
+        )
+    })?;
+
+    execute!(terminal.backend_mut(), LeaveAlternateScreen).map_err(|e| {
+        PixlieError::session(
+            format!("Failed to leave alternate screen: {}", e),
+            ErrorContext::new().with_context("TUI cleanup"),
+        )
+    })?;
+
+    terminal.show_cursor().map_err(|e| {
+        PixlieError::session(
+            format!("Failed to show cursor: {}", e),
+            ErrorContext::new().with_context("TUI cleanup"),
+        )
+    })?;
 
     result
 }
@@ -131,20 +154,26 @@ async fn run_tui_loop(
 ) -> Result<()> {
     loop {
         // Render the UI
-        terminal.draw(|frame| {
-            render_ui(frame, app);
-        }).map_err(|e| PixlieError::session(
-            format!("Failed to draw terminal: {}", e),
-            ErrorContext::new().with_context("TUI rendering"),
-        ))?;
+        terminal
+            .draw(|frame| {
+                render_ui(frame, app);
+            })
+            .map_err(|e| {
+                PixlieError::session(
+                    format!("Failed to draw terminal: {}", e),
+                    ErrorContext::new().with_context("TUI rendering"),
+                )
+            })?;
 
         // Handle events
         if let Some(event) = event_handler.next().await {
             match event {
                 Event::Key(key_event) => {
-                    // Handle Ctrl+, for settings
+                    // Handle special key combinations
                     if key_event.code == crossterm::event::KeyCode::F(12) {
                         app.toggle_settings();
+                    } else if key_event.code == crossterm::event::KeyCode::F(11) {
+                        app.open_workspace_manager().await;
                     } else {
                         app.handle_key(key_event.code).await?;
                     }
@@ -167,112 +196,180 @@ async fn run_tui_loop(
 }
 
 /// Render the main UI
-fn render_ui(frame: &mut Frame, app: &App) {
+fn render_ui(frame: &mut Frame, app: &mut App) {
     let area = frame.size();
 
     match app.mode() {
+        pixlie::tui::AppMode::WorkspacePicker => {
+            if let Some(picker) = app.workspace_picker() {
+                picker.render(frame, area);
+            }
+        }
         pixlie::tui::AppMode::Normal => {
             render_normal_mode(frame, app, area);
         }
         pixlie::tui::AppMode::Settings => {
             render_normal_mode(frame, app, area); // Render background
-            
+
             // Get config manager for settings modal
             let config_manager = tokio::task::block_in_place(|| {
-                tokio::runtime::Handle::current().block_on(async {
-                    app.get_config_manager().await
-                })
+                tokio::runtime::Handle::current().block_on(async { app.get_config_manager().await })
             });
-            
+
             SettingsModal::render(frame, app, config_manager, area);
+        }
+        pixlie::tui::AppMode::WorkspaceManager => {
+            render_normal_mode(frame, app, area); // Render background
+
+            if let Some(manager) = app.workspace_manager() {
+                manager.render(frame, area);
+            }
         }
     }
 }
 
 /// Render normal mode (main interface)
-fn render_normal_mode(frame: &mut Frame, _app: &App, area: Rect) {
-    let main_block = Block::default()
-        .title("Pixlie - LLM Data Analysis Tool")
-        .borders(Borders::ALL);
+fn render_normal_mode(frame: &mut Frame, app: &App, area: Rect) {
+    let workspace_info = tokio::task::block_in_place(|| {
+        tokio::runtime::Handle::current().block_on(async {
+            let config = app.get_config_manager().await;
+            let config = config.read().await;
 
-    let content = Paragraph::new(vec![
-        Line::from("Welcome to Pixlie!"),
+            if let Some(workspace_config) = &config.workspace {
+                let workspace_name = workspace_config
+                    .metadata
+                    .name
+                    .clone()
+                    .unwrap_or_else(|| "Unknown Workspace".to_string());
+                let objectives_count = workspace_config.workspace.pinned_objectives.len();
+
+                Some((workspace_name, objectives_count))
+            } else {
+                None
+            }
+        })
+    });
+
+    let main_title = if let Some((workspace_name, _)) = &workspace_info {
+        format!("Pixlie - {} Workspace", workspace_name)
+    } else {
+        "Pixlie - LLM Data Analysis Tool".to_string()
+    };
+
+    let main_block = Block::default().title(main_title).borders(Borders::ALL);
+
+    let mut content_lines = vec![Line::from("Welcome to Pixlie!"), Line::from("")];
+
+    if let Some((workspace_name, objectives_count)) = workspace_info {
+        content_lines.extend(vec![
+            Line::from(vec![
+                Span::styled("Current Workspace: ", Style::default().fg(Color::Cyan)),
+                Span::styled(
+                    workspace_name,
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("Pinned Objectives: ", Style::default().fg(Color::Cyan)),
+                Span::raw(objectives_count.to_string()),
+            ]),
+            Line::from(""),
+        ]);
+    } else {
+        content_lines.extend(vec![
+            Line::from(Span::styled(
+                "No workspace loaded",
+                Style::default().fg(Color::Red),
+            )),
+            Line::from(""),
+        ]);
+    }
+
+    content_lines.extend(vec![
+        Line::from("Keyboard Shortcuts:"),
+        Line::from("• Ctrl+W: Open Workspace Manager"),
+        Line::from("• Ctrl+,: Open Settings"),
+        Line::from("• Ctrl+Q: Quit"),
         Line::from(""),
-        Line::from("Press Ctrl+, to open Settings"),
-        Line::from("Press Ctrl+Q to quit"),
-        Line::from(""),
-        Line::from("This is a placeholder interface."),
-        Line::from("The settings system is ready for configuration!"),
-    ])
-    .block(main_block)
-    .wrap(ratatui::widgets::Wrap { trim: true });
+        Line::from("This is the main interface placeholder."),
+        Line::from("The workspace management system is now ready!"),
+    ]);
+
+    let content = Paragraph::new(content_lines)
+        .block(main_block)
+        .wrap(ratatui::widgets::Wrap { trim: true });
 
     frame.render_widget(content, area);
 }
 
 /// Load workspace configuration if workspace exists
-async fn load_workspace_configuration(config_manager: &mut ConfigManager, workspace_path: &str) -> Result<()> {
+async fn load_workspace_configuration(
+    config_manager: &mut ConfigManager,
+    workspace_path: &str,
+) -> Result<()> {
     use pixlie::ConfigLoader;
-    
+
     let loader = ConfigLoader::new()?;
-    
+
     // Check if workspace configuration exists
     if loader.workspace_config_exists(workspace_path) {
         debug!("Loading workspace configuration from: {}", workspace_path);
         if let Some(workspace_config) = loader.load_workspace_config(workspace_path).await? {
             config_manager.workspace = Some(workspace_config);
-            config_manager.paths.workspace_config = Some(
-                std::path::PathBuf::from(workspace_path).join(".pixlie-workspace.toml")
-            );
+            config_manager.paths.workspace_config =
+                Some(std::path::PathBuf::from(workspace_path).join(".pixlie-workspace.toml"));
         }
     } else {
         debug!("No workspace configuration found at: {}", workspace_path);
     }
-    
+
     Ok(())
 }
 
 /// Load basic configuration (global config + environment variables)
 async fn load_basic_configuration(config_manager: &mut ConfigManager) -> Result<()> {
     use pixlie::ConfigLoader;
-    
+
     let loader = ConfigLoader::new()?;
-    
+
     // Load global configuration
     config_manager.global = loader.load_global_config().await?;
-    
+
     // Apply environment variable overrides
     loader.apply_environment_overrides(&mut config_manager.global)?;
-    
+
     debug!("Basic configuration loaded");
     Ok(())
 }
 
 /// Detect if current directory or parent directories contain a workspace
 async fn detect_workspace_in_current_dir() -> Result<Option<String>> {
-    let current_dir = std::env::current_dir()
-        .map_err(|e| PixlieError::session(
+    let current_dir = std::env::current_dir().map_err(|e| {
+        PixlieError::session(
             format!("Failed to get current directory: {}", e),
             ErrorContext::new().with_context("Workspace detection"),
-        ))?;
-    
+        )
+    })?;
+
     // Look for .pixlie-workspace.toml in current directory and parents
     let mut dir = current_dir.as_path();
-    
+
     loop {
         let workspace_config = dir.join(".pixlie-workspace.toml");
         if workspace_config.exists() {
             debug!("Found workspace configuration at: {:?}", dir);
             return Ok(Some(dir.to_string_lossy().to_string()));
         }
-        
+
         // Move to parent directory
         match dir.parent() {
             Some(parent) => dir = parent,
             None => break, // Reached filesystem root
         }
     }
-    
+
     debug!("No workspace configuration found in current directory or parents");
     Ok(None)
 }
@@ -298,10 +395,10 @@ async fn main() {
     // Run the application and handle errors
     if let Err(e) = run_application(args).await {
         log_error(&e);
-        
+
         // Also print user-friendly error to stderr
         eprintln!("Error: {}", e.user_message());
-        
+
         // Exit with error code based on severity
         let exit_code = match e.severity() {
             ErrorSeverity::Low => 1,
@@ -309,7 +406,7 @@ async fn main() {
             ErrorSeverity::High => 3,
             ErrorSeverity::Critical => 4,
         };
-        
+
         process::exit(exit_code);
     }
 }

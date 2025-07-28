@@ -43,6 +43,13 @@ impl EventHandler {
                                                 KeyModifiers::NONE,
                                             )));
                                         }
+                                        KeyCode::Char('w') => {
+                                            // Send Ctrl+W as a special workspace manager key
+                                            let _ = event_sender.send(Event::Key(KeyEvent::new(
+                                                KeyCode::F(11), // Use F11 as internal workspace manager key
+                                                KeyModifiers::NONE,
+                                            )));
+                                        }
                                         _ => {
                                             let _ = event_sender.send(Event::Key(key));
                                         }

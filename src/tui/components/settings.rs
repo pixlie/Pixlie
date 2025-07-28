@@ -1,7 +1,9 @@
-use crate::config::{ConfigManager, UiConfig, SessionConfig, LlmConfig, DatabaseConfig, ShortcutsConfig};
-use crate::tui::{App, SettingsTab, Layout};
+use crate::config::{
+    ConfigManager, DatabaseConfig, LlmConfig, SessionConfig, ShortcutsConfig, UiConfig,
+};
+use crate::tui::{App, Layout, SettingsTab};
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Tabs, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph, Tabs, Wrap};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -15,10 +17,10 @@ impl SettingsModal {
         area: Rect,
     ) {
         let settings_chunks = Layout::settings_layout(area);
-        
+
         // Clear the background
         frame.render_widget(Clear, area);
-        
+
         // Render main settings block
         let settings_block = Block::default()
             .title("Settings (Ctrl+, to toggle)")
@@ -28,17 +30,17 @@ impl SettingsModal {
 
         // Render tabs
         Self::render_tabs(frame, app, settings_chunks[0]);
-        
+
         // Render content based on selected tab
         tokio::spawn(async move {
             let _config = config_manager.read().await;
             // Note: In a real implementation, we'd need to structure this differently
             // to avoid async in sync context. For now, this shows the structure.
         });
-        
+
         // For now, render placeholder content
         Self::render_placeholder_content(frame, app, settings_chunks[1]);
-        
+
         // Render action buttons
         Self::render_actions(frame, app, settings_chunks[2]);
     }
@@ -70,7 +72,7 @@ impl SettingsModal {
             SettingsTab::Database => Self::render_database_settings_placeholder(area),
             SettingsTab::Shortcuts => Self::render_shortcuts_settings_placeholder(area),
         };
-        
+
         frame.render_widget(content, area);
     }
 
@@ -105,7 +107,11 @@ impl SettingsModal {
         ];
 
         Paragraph::new(text)
-            .block(Block::default().borders(Borders::ALL).title("Session Settings"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Session Settings"),
+            )
             .wrap(Wrap { trim: true })
     }
 
@@ -139,7 +145,11 @@ impl SettingsModal {
         ];
 
         Paragraph::new(text)
-            .block(Block::default().borders(Borders::ALL).title("Database Settings"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Database Settings"),
+            )
             .wrap(Wrap { trim: true })
     }
 
@@ -157,13 +167,17 @@ impl SettingsModal {
         ];
 
         Paragraph::new(text)
-            .block(Block::default().borders(Borders::ALL).title("Keyboard Shortcuts"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Keyboard Shortcuts"),
+            )
             .wrap(Wrap { trim: true })
     }
 
     fn render_actions(frame: &mut Frame<'_>, app: &App, area: Rect) {
         let action_chunks = Layout::settings_actions_layout(area);
-        
+
         let apply_style = if app.settings_modified() {
             Style::default().fg(Color::Green).bold()
         } else {
@@ -197,7 +211,7 @@ impl SettingsModal {
         area: Rect,
     ) {
         let config = config_manager.read().await;
-        
+
         match app.settings_tab() {
             SettingsTab::Ui => {
                 let ui_config = config.effective_ui_config();
@@ -226,7 +240,11 @@ impl SettingsModal {
         // TODO: Implement actual UI settings rendering with real config values
     }
 
-    fn render_session_settings_with_config(_frame: &mut Frame<'_>, _config: &SessionConfig, _area: Rect) {
+    fn render_session_settings_with_config(
+        _frame: &mut Frame<'_>,
+        _config: &SessionConfig,
+        _area: Rect,
+    ) {
         // TODO: Implement actual session settings rendering with real config values
     }
 
@@ -234,11 +252,19 @@ impl SettingsModal {
         // TODO: Implement actual LLM settings rendering with real config values
     }
 
-    fn render_database_settings_with_config(_frame: &mut Frame<'_>, _config: &DatabaseConfig, _area: Rect) {
+    fn render_database_settings_with_config(
+        _frame: &mut Frame<'_>,
+        _config: &DatabaseConfig,
+        _area: Rect,
+    ) {
         // TODO: Implement actual database settings rendering with real config values
     }
 
-    fn render_shortcuts_settings_with_config(_frame: &mut Frame<'_>, _config: &ShortcutsConfig, _area: Rect) {
+    fn render_shortcuts_settings_with_config(
+        _frame: &mut Frame<'_>,
+        _config: &ShortcutsConfig,
+        _area: Rect,
+    ) {
         // TODO: Implement actual shortcuts settings rendering with real config values
     }
 }

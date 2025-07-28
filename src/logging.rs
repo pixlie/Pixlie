@@ -1,18 +1,13 @@
 //! Structured logging system for Pixlie TUI application
-//! 
+//!
 //! Provides logging utilities for different components with proper
 //! context propagation and structured output.
 
-use tracing::{info, warn, error, debug, trace};
-use tracing_subscriber::{
-    fmt,
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-    EnvFilter,
-};
-use uuid::Uuid;
+use crate::error::{ErrorContext, ErrorSeverity, PixlieError};
 use std::io;
-use crate::error::{PixlieError, ErrorContext, ErrorSeverity};
+use tracing::{debug, error, info, trace, warn};
+use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use uuid::Uuid;
 
 /// Logging configuration for the application
 #[derive(Debug, Clone)]
@@ -40,15 +35,13 @@ impl Default for LoggingConfig {
 
 /// Initialize the logging system with the given configuration
 pub fn init_logging(config: LoggingConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&config.level));
+    let env_filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.level));
 
     let subscriber_builder = tracing_subscriber::registry().with(env_filter);
 
     if config.json_format {
-        let json_layer = fmt::layer()
-            .json()
-            .with_writer(io::stderr);
+        let json_layer = fmt::layer().json().with_writer(io::stderr);
         subscriber_builder.with(json_layer).try_init()?;
     } else {
         let fmt_layer = fmt::layer()
@@ -68,7 +61,12 @@ impl TuiLogger {
     /// Log TUI state changes
     pub fn state_change(event: &str, details: Option<&str>) {
         match details {
-            Some(details) => debug!(component = "tui", event = event, details = details, "TUI state change"),
+            Some(details) => debug!(
+                component = "tui",
+                event = event,
+                details = details,
+                "TUI state change"
+            ),
             None => debug!(component = "tui", event = event, "TUI state change"),
         }
     }
@@ -76,7 +74,12 @@ impl TuiLogger {
     /// Log user interactions
     pub fn user_interaction(action: &str, context: Option<&str>) {
         match context {
-            Some(context) => info!(component = "tui", action = action, context = context, "User interaction"),
+            Some(context) => info!(
+                component = "tui",
+                action = action,
+                context = context,
+                "User interaction"
+            ),
             None => info!(component = "tui", action = action, "User interaction"),
         }
     }
@@ -84,7 +87,12 @@ impl TuiLogger {
     /// Log rendering events
     pub fn rendering(area: &str, duration_ms: Option<u64>) {
         match duration_ms {
-            Some(duration) => trace!(component = "tui", area = area, duration_ms = duration, "UI rendering"),
+            Some(duration) => trace!(
+                component = "tui",
+                area = area,
+                duration_ms = duration,
+                "UI rendering"
+            ),
             None => trace!(component = "tui", area = area, "UI rendering"),
         }
     }
@@ -92,7 +100,12 @@ impl TuiLogger {
     /// Log input events
     pub fn input_event(event_type: &str, key: Option<&str>) {
         match key {
-            Some(key) => debug!(component = "tui", event_type = event_type, key = key, "Input event"),
+            Some(key) => debug!(
+                component = "tui",
+                event_type = event_type,
+                key = key,
+                "Input event"
+            ),
             None => debug!(component = "tui", event_type = event_type, "Input event"),
         }
     }
@@ -105,7 +118,9 @@ impl SessionLogger {
     /// Log session lifecycle events
     pub fn lifecycle(event: &str, session_id: Option<Uuid>) {
         match session_id {
-            Some(id) => info!(component = "session", event = event, session_id = %id, "Session lifecycle"),
+            Some(id) => {
+                info!(component = "session", event = event, session_id = %id, "Session lifecycle")
+            }
             None => info!(component = "session", event = event, "Session lifecycle"),
         }
     }
@@ -256,7 +271,13 @@ impl LlmLogger {
     }
 
     /// Log LLM request failure
-    pub fn request_failed(provider: &str, model: &str, context: &ErrorContext, error: &str, retryable: bool) {
+    pub fn request_failed(
+        provider: &str,
+        model: &str,
+        context: &ErrorContext,
+        error: &str,
+        retryable: bool,
+    ) {
         warn!(
             component = "llm",
             provider = provider,
@@ -271,7 +292,12 @@ impl LlmLogger {
     }
 
     /// Log streaming events
-    pub fn streaming_event(provider: &str, context: &ErrorContext, event_type: &str, chunk_size: Option<usize>) {
+    pub fn streaming_event(
+        provider: &str,
+        context: &ErrorContext,
+        event_type: &str,
+        chunk_size: Option<usize>,
+    ) {
         match chunk_size {
             Some(size) => trace!(
                 component = "llm",
@@ -393,7 +419,12 @@ pub fn log_error(error: &PixlieError) {
 }
 
 /// Log performance metrics
-pub fn log_performance_metric(component: &str, operation: &str, duration_ms: u64, additional_metrics: Option<&str>) {
+pub fn log_performance_metric(
+    component: &str,
+    operation: &str,
+    duration_ms: u64,
+    additional_metrics: Option<&str>,
+) {
     match additional_metrics {
         Some(metrics) => info!(
             component = component,
@@ -428,7 +459,7 @@ mod tests {
     fn test_error_logging() {
         let context = ErrorContext::new();
         let error = PixlieError::tui("Test error", context);
-        
+
         // This would normally log, but in tests we just verify it doesn't panic
         log_error(&error);
     }
