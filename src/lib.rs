@@ -6,6 +6,7 @@
 pub mod error;
 pub mod logging;
 pub mod config;
+pub mod tui;
 
 pub use error::{PixlieError, ErrorContext, ErrorContextExt, ErrorSeverity, Result};
 pub use logging::{LoggingConfig, init_logging, log_error, log_performance_metric};

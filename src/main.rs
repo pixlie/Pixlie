@@ -1,6 +1,15 @@
 use clap::Parser;
 use pixlie::{LoggingConfig, init_logging, log_error, ErrorContext, PixlieError, Result, ErrorSeverity, ConfigManager};
+use pixlie::tui::{App, EventHandler, Event};
+use pixlie::tui::components::SettingsModal;
+use ratatui::prelude::*;
+use ratatui::widgets::{Block, Borders, Paragraph};
 use std::process;
+use std::io;
+use crossterm::{
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
 use tracing::{info, debug};
 
 #[derive(Parser)]
@@ -65,18 +74,140 @@ async fn run_application(args: Args) -> Result<()> {
 
     info!("🚀 Starting TUI interface...");
     
-    // TODO: Launch TUI interface here
-    // For now, we'll show a placeholder message
-    println!("TUI interface would launch here!");
-    println!("Theme: {}", ui_config.theme);
-    println!("Layout: {}", ui_config.layout);
-    if let Some(workspace) = &config_manager.workspace {
-        if let Some(name) = &workspace.metadata.name {
-            println!("Workspace: {}", name);
+    // Launch actual TUI interface
+    start_tui(config_manager).await
+}
+
+/// Start the TUI interface
+async fn start_tui(config_manager: ConfigManager) -> Result<()> {
+    // Setup terminal
+    enable_raw_mode().map_err(|e| PixlieError::session(
+        format!("Failed to enable raw mode: {}", e),
+        ErrorContext::new().with_context("TUI initialization"),
+    ))?;
+    
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen).map_err(|e| PixlieError::session(
+        format!("Failed to enter alternate screen: {}", e),
+        ErrorContext::new().with_context("TUI initialization"),
+    ))?;
+    
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend).map_err(|e| PixlieError::session(
+        format!("Failed to create terminal: {}", e),
+        ErrorContext::new().with_context("TUI initialization"),
+    ))?;
+
+    // Create app and event handler
+    let mut app = App::new(config_manager);
+    let mut event_handler = EventHandler::new();
+
+    let result = run_tui_loop(&mut terminal, &mut app, &mut event_handler).await;
+
+    // Restore terminal
+    disable_raw_mode().map_err(|e| PixlieError::session(
+        format!("Failed to disable raw mode: {}", e),
+        ErrorContext::new().with_context("TUI cleanup"),
+    ))?;
+    
+    execute!(terminal.backend_mut(), LeaveAlternateScreen).map_err(|e| PixlieError::session(
+        format!("Failed to leave alternate screen: {}", e),
+        ErrorContext::new().with_context("TUI cleanup"),
+    ))?;
+    
+    terminal.show_cursor().map_err(|e| PixlieError::session(
+        format!("Failed to show cursor: {}", e),
+        ErrorContext::new().with_context("TUI cleanup"),
+    ))?;
+
+    result
+}
+
+/// Run the main TUI event loop
+async fn run_tui_loop(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    app: &mut App,
+    event_handler: &mut EventHandler,
+) -> Result<()> {
+    loop {
+        // Render the UI
+        terminal.draw(|frame| {
+            render_ui(frame, app);
+        }).map_err(|e| PixlieError::session(
+            format!("Failed to draw terminal: {}", e),
+            ErrorContext::new().with_context("TUI rendering"),
+        ))?;
+
+        // Handle events
+        if let Some(event) = event_handler.next().await {
+            match event {
+                Event::Key(key_event) => {
+                    // Handle Ctrl+, for settings
+                    if key_event.code == crossterm::event::KeyCode::F(12) {
+                        app.toggle_settings();
+                    } else {
+                        app.handle_key(key_event.code).await?;
+                    }
+                }
+                Event::Resize(_, _) => {
+                    // Terminal was resized, will be handled on next draw
+                }
+                Event::Quit => {
+                    break;
+                }
+            }
+        }
+
+        if app.should_quit() {
+            break;
         }
     }
 
     Ok(())
+}
+
+/// Render the main UI
+fn render_ui(frame: &mut Frame, app: &App) {
+    let area = frame.size();
+
+    match app.mode() {
+        pixlie::tui::AppMode::Normal => {
+            render_normal_mode(frame, app, area);
+        }
+        pixlie::tui::AppMode::Settings => {
+            render_normal_mode(frame, app, area); // Render background
+            
+            // Get config manager for settings modal
+            let config_manager = tokio::task::block_in_place(|| {
+                tokio::runtime::Handle::current().block_on(async {
+                    app.get_config_manager().await
+                })
+            });
+            
+            SettingsModal::render(frame, app, config_manager, area);
+        }
+    }
+}
+
+/// Render normal mode (main interface)
+fn render_normal_mode(frame: &mut Frame, _app: &App, area: Rect) {
+    let main_block = Block::default()
+        .title("Pixlie - LLM Data Analysis Tool")
+        .borders(Borders::ALL);
+
+    let content = Paragraph::new(vec![
+        Line::from("Welcome to Pixlie!"),
+        Line::from(""),
+        Line::from("Press Ctrl+, to open Settings"),
+        Line::from("Press Ctrl+Q to quit"),
+        Line::from(""),
+        Line::from("This is a placeholder interface."),
+        Line::from("The settings system is ready for configuration!"),
+    ])
+    .block(main_block)
+    .wrap(ratatui::widgets::Wrap { trim: true });
+
+    frame.render_widget(content, area);
 }
 
 /// Load workspace configuration if workspace exists
